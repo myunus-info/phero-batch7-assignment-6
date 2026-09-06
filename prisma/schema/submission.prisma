@@ -1,0 +1,23 @@
+model Submission {
+  id                    String           @id @default(cuid())
+  assessmentCandidateId String
+  problemId             String
+  candidateId           String
+  submittedCode         String?
+  selectedOptions       Json?
+  executionResult       Json?
+  scoreAwarded          Int              @default(0)
+  status                SubmissionStatus @default(PENDING)
+  executionTimeMs       Int?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  assessmentCandidate AssessmentCandidate @relation(fields: [assessmentCandidateId], references: [id], onDelete: Cascade)
+  problem             Problem             @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  candidate           User                @relation("CandidateSubmissions", fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentCandidateId])
+  @@index([problemId])
+  @@index([candidateId])
+  @@map("submissions")
+}

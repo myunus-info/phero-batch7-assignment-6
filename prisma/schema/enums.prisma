@@ -1,0 +1,49 @@
+enum UserRole {
+  ADMIN
+  RECRUITER
+  CANDIDATE
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum ProblemType {
+  CODING
+  MCQ
+  SINGLE_CHOICE
+}
+
+enum AssessmentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CandidateAssessmentStatus {
+  INVITED
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
+enum SubmissionStatus {
+  PENDING
+  PASSED
+  FAILED
+  EVALUATED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}

@@ -1,0 +1,20 @@
+model Payment {
+  id                    String        @id @default(cuid())
+  userId                String
+  stripeSessionId       String?       @unique
+  stripePaymentIntentId String?       @unique
+  amount                Float
+  currency              String        @default("usd")
+  creditsPurchased      Int           @default(10)
+  planName              String        @default("STARTER_PACK")
+  status                PaymentStatus @default(PENDING)
+  metadata              Json?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  user User @relation("UserPayments", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("payments")
+}

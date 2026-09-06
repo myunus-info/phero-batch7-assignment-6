@@ -7,8 +7,14 @@
   "type": "module",
   "main": "server.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "contract:emit": "prisma contract emit"
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/src/server.js",
+    "format:check": "npx @biomejs/biome format ./src",
+    "format:fix": "npx @biomejs/biome format --write ./src",
+    "lint:check": "npx @biomejs/biome lint ./src",
+    "lint:fix": "npx @biomejs/biome lint --write ./src",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
@@ -38,6 +44,7 @@
     "@types/node": "^26.4.1",
     "@types/pg": "^8.23.1",
     "prisma": "^7.10.0",
+    "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   }
 }

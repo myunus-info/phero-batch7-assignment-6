@@ -1,0 +1,67 @@
+model Assessment {
+  id              String           @id @default(cuid())
+  title           String
+  description     String?
+  recruiterId     String
+  durationMinutes Int              @default(60)
+  totalMarks      Int              @default(100)
+  passingMarks    Int              @default(60)
+  scheduleStart   DateTime?
+  scheduleEnd     DateTime?
+  status          AssessmentStatus @default(DRAFT)
+  isDeleted       Boolean          @default(false)
+  deletedAt       DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  recruiter  User                  @relation("AssessmentRecruiter", fields: [recruiterId], references: [id])
+  problems   AssessmentProblem[]
+  candidates AssessmentCandidate[]
+
+  @@index([recruiterId])
+  @@index([status])
+  @@index([isDeleted])
+  @@map("assessments")
+}
+
+
+model AssessmentProblem {
+  id           String   @id @default(cuid())
+  assessmentId String
+  problemId    String
+  orderIndex   Int      @default(1)
+  customPoints Int?
+  createdAt    DateTime @default(now())
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  problem    Problem    @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, problemId])
+  @@map("assessment_problems")
+}
+
+
+model AssessmentCandidate {
+  id              String                    @id @default(cuid())
+  assessmentId    String
+  candidateId     String?
+  candidateEmail  String
+  invitationToken String                    @unique
+  status          CandidateAssessmentStatus @default(INVITED)
+  totalScore      Int                       @default(0)
+  isPassed        Boolean                   @default(false)
+  startedAt       DateTime?
+  submittedAt     DateTime?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  assessment  Assessment   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  candidate   User?        @relation("CandidateAssessments", fields: [candidateId], references: [id], onDelete: SetNull)
+  submissions Submission[]
+
+  @@index([assessmentId])
+  @@index([candidateId])
+  @@index([candidateEmail])
+  @@index([status])
+  @@map("assessment_candidates")
+}

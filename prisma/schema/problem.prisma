@@ -1,0 +1,30 @@
+model Problem {
+  id               String          @id @default(cuid())
+  title            String
+  slug             String          @unique
+  description      String
+  difficulty       DifficultyLevel @default(MEDIUM)
+  problemType      ProblemType     @default(CODING)
+  creatorId        String
+  points           Int             @default(10)
+  timeLimitSeconds Int             @default(300)
+  isPublic         Boolean         @default(true)
+  starterCode      Json? // e.g. { "javascript": "function solution() {\n\n}" }
+  mcqOptions       Json? // e.g. [ { "id": "A", "text": "Option 1" } ]
+  correctAnswers   Json? // e.g. ["A"] or [ { "input": "...", "expectedOutput": "..." } ]
+  testCases        Json? // e.g. [ { "input": "2 3", "expectedOutput": "5", "isHidden": false } ]
+  isDeleted        Boolean         @default(false)
+  deletedAt        DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  creator            User                @relation("ProblemCreator", fields: [creatorId], references: [id])
+  assessmentProblems AssessmentProblem[]
+  submissions        Submission[]
+
+  @@index([creatorId])
+  @@index([difficulty])
+  @@index([problemType])
+  @@index([isDeleted])
+  @@map("problems")
+}

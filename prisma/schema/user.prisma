@@ -1,0 +1,28 @@
+model User {
+  id        String     @id @default(cuid())
+  name      String
+  email     String     @unique
+  password  String?
+  role      UserRole   @default(CANDIDATE)
+  avatar    String?
+  googleId  String?    @unique
+  status    UserStatus @default(ACTIVE)
+  isDeleted Boolean    @default(false)
+  deletedAt DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  recruiterProfile     RecruiterProfile?
+  candidateProfile     CandidateProfile?
+  createdProblems      Problem[]             @relation("ProblemCreator")
+  createdAssessments   Assessment[]          @relation("AssessmentRecruiter")
+  candidateAssessments AssessmentCandidate[] @relation("CandidateAssessments")
+  submissions          Submission[]          @relation("CandidateSubmissions")
+  payments             Payment[]             @relation("UserPayments")
+  auditLogs            AuditLog[]            @relation("UserAuditLogs")
+
+  @@index([email])
+  @@index([role])
+  @@index([isDeleted])
+  @@map("users")
+}
