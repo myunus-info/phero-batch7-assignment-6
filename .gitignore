@@ -10,5 +10,16 @@ dist
 pnpm-lock.yaml
 yarn.lock
 package-lock.json
+skills-lock.json
 pnpm-workspace.yaml
 .vscode
+
+.agents/
+.claude/
+.windsurf/
+
+/generated/prisma
+node_modules/
+dist/
+
+/../src/generated/prisma
