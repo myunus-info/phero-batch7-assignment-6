@@ -1,15 +1,14 @@
 import { Server } from 'http';
 import app from './app';
 import { config } from './app/config';
-// import config from './app/config';
-// import prisma from './app/utils/prisma';
+import { prisma } from './app/lib/prisma';
 
 let server: Server;
 
 async function bootstrap() {
   try {
     server = app.listen(config.port, () => {
-      console.log(`🚀 DevJudge API Server is running on port ${config.port} in ${config.env} mode.`);
+      console.log(`Server is running on port ${config.port}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
@@ -22,7 +21,7 @@ async function bootstrap() {
         console.log('HTTP Server closed.');
       });
     }
-    // prisma.$disconnect();
+    prisma.$disconnect();
     process.exit(1);
   };
 
