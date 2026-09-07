@@ -5,7 +5,7 @@ import { AuthRoutes } from '../modules/auth/auth.routes';
 // import { AssessmentRoutes } from '../modules/assessment/assessment.routes';
 // import { AttemptRoutes } from '../modules/attempt/attempt.routes';
 // import { PaymentRoutes } from '../modules/payment/payment.routes';
-// import { AdminRoutes } from '../modules/admin/admin.routes';
+import { AdminRoutes } from '../modules/admin/admin.routes';
 
 const router = express.Router();
 
@@ -34,10 +34,10 @@ const moduleRoutes = [
   //   path: '/payments',
   //   route: PaymentRoutes,
   // },
-  // {
-  //   path: '/admin',
-  //   route: AdminRoutes,
-  // },
+  {
+    path: '/admin',
+    route: AdminRoutes,
+  },
 ];
 
 moduleRoutes.forEach(route => router.use(route.path, route.route));
