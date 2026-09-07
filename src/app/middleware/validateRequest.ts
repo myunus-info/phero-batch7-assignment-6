@@ -11,6 +11,9 @@ const validateRequest = (schema: AnyZodObject) => {
     const result = schema.safeParse(payload);
 
     if (!result.success) {
+      console.log(result.error);
+      console.log(result.error.issues);
+
       throw new ApiError(httpStatus.BAD_REQUEST, result.error.issues[0].message);
     }
 

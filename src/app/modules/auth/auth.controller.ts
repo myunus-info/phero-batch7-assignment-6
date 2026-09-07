@@ -69,6 +69,12 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
 });
 
 const logout = catchAsync(async (req: Request, res: Response) => {
+  res.clearCookie('accessToken', {
+    secure: config.env === 'production',
+    httpOnly: true,
+    sameSite: 'lax',
+  });
+
   res.clearCookie('refreshToken', {
     secure: config.env === 'production',
     httpOnly: true,
