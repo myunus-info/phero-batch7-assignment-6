@@ -3,28 +3,28 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
-// import config from './app/config';
-// import routes from './app/routes';
-// import globalErrorHandler from './app/middlewares/globalErrorHandler';
-// import notFound from './app/middlewares/notFound';
-// import { globalLimiter } from './app/middlewares/rateLimiter';
+import { config } from './app/config';
+import { globalLimiter } from './app/middleware/rateLimiter';
+import globalErrorHandler from './app/middleware/globalErrorHandler';
+import notFound from './app/middleware/notFound';
+import routes from './app/routes';
 
 const app: Application = express();
 
 // Security Middlewares
 app.use(helmet());
-// app.use(
-//   cors({
-//     origin: [config.stripe.client_url, 'http://localhost:3000', 'http://localhost:5173'],
-//     credentials: true,
-//   }),
-// );
+app.use(
+  cors({
+    origin: [config.stripe.client_url, 'http://localhost:3000', 'http://localhost:5173'],
+    credentials: true,
+  }),
+);
 
 // Logging & Rate Limiting
-// if (config.env === 'development') {
-//   app.use(morgan('dev'));
-// }
-// app.use(globalLimiter);
+if (config.env === 'development') {
+  app.use(morgan('dev'));
+}
+app.use(globalLimiter);
 
 // Parsers
 app.use(cookieParser());
@@ -43,10 +43,10 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 // Application Routes
-// app.use('/api/v1', routes);
+app.use('/api/v1', routes);
 
 // Error Handlers
-// app.use(globalErrorHandler);
-// app.use(notFound);
+app.use(globalErrorHandler);
+app.use(notFound);
 
 export default app;

@@ -1,20 +1,23 @@
-import { NextFunction, Request, Response } from 'express';
 import { AnyZodObject } from 'zod/v3';
+import httpStatus from 'http-status';
+import { NextFunction, Request, Response } from 'express';
+import catchAsync from '../utils/catchAsync';
+import ApiError from '../errors/ApiError';
 
 const validateRequest = (schema: AnyZodObject) => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      await schema.parseAsync({
-        body: req.body,
-        query: req.query,
-        params: req.params,
-        cookies: req.cookies,
-      });
-      next();
-    } catch (error) {
-      next(error);
+  return catchAsync(async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const payload = req.body ?? {};
+
+    const result = schema.safeParse(payload);
+
+    if (!result.success) {
+      throw new ApiError(httpStatus.BAD_REQUEST, result.error.issues[0].message);
     }
-  };
+
+    req.body = result.data;
+
+    next();
+  });
 };
 
 export default validateRequest;
