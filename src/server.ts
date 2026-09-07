@@ -2,11 +2,20 @@ import { Server } from 'http';
 import app from './app';
 import { config } from './app/config';
 import { prisma } from './app/lib/prisma';
+import { main } from './app/utils/seed';
 
 let server: Server;
 
 async function bootstrap() {
   try {
+    main()
+      .catch(e => {
+        console.error('❌ Seeding failed:', e);
+        process.exit(1);
+      })
+      .finally(async () => {
+        await prisma.$disconnect();
+      });
     server = app.listen(config.port, () => {
       console.log(`Server is running on port ${config.port}`);
     });
