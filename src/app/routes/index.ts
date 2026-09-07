@@ -1,7 +1,7 @@
 import express from 'express';
 import { AuthRoutes } from '../modules/auth/auth.routes';
 // import { UserRoutes } from '../modules/user/user.routes';
-// import { ProblemRoutes } from '../modules/problem/problem.routes';
+import { ProblemRoutes } from '../modules/problem/problem.routes';
 // import { AssessmentRoutes } from '../modules/assessment/assessment.routes';
 // import { AttemptRoutes } from '../modules/attempt/attempt.routes';
 // import { PaymentRoutes } from '../modules/payment/payment.routes';
@@ -18,10 +18,10 @@ const moduleRoutes = [
   //   path: '/users',
   //   route: UserRoutes,
   // },
-  // {
-  //   path: '/problems',
-  //   route: ProblemRoutes,
-  // },
+  {
+    path: '/problems',
+    route: ProblemRoutes,
+  },
   // {
   //   path: '/assessments',
   //   route: AssessmentRoutes,
