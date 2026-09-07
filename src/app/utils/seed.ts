@@ -10,13 +10,20 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../lib/prisma';
 
 export async function main() {
-  console.log('🌱 Starting database seeding for DevJudge API...');
-
   const hashedPassword = await bcrypt.hash('Admin@123456', 12);
   const recruiterPassword = await bcrypt.hash('Recruiter@123456', 12);
   const candidatePassword = await bcrypt.hash('Candidate@123456', 12);
 
   // 1. Seed Admin
+  const existingAdmin = await prisma.user.findFirst({
+    where: {
+      email: 'admin@devjudge.com',
+      role: UserRole.ADMIN,
+    },
+  });
+
+  if (existingAdmin) return;
+
   const admin = await prisma.user.upsert({
     where: { email: 'admin@devjudge.com' },
     update: {},
@@ -27,9 +34,17 @@ export async function main() {
       role: UserRole.ADMIN,
     },
   });
-  console.log(`✅ Admin user seeded: ${admin.email} / Admin@123456`);
 
   // 2. Seed Recruiter
+  const existingRecruiter = await prisma.user.findFirst({
+    where: {
+      email: 'recruiter@techcorp.com',
+      role: UserRole.RECRUITER,
+    },
+  });
+
+  if (existingRecruiter) return;
+
   const recruiter = await prisma.user.upsert({
     where: { email: 'recruiter@techcorp.com' },
     update: {},
@@ -47,9 +62,17 @@ export async function main() {
       },
     },
   });
-  console.log(`✅ Recruiter user seeded: ${recruiter.email} / Recruiter@123456`);
 
   // 3. Seed Candidate
+  const existingCandidate = await prisma.user.findFirst({
+    where: {
+      email: 'candidate@devjudge.com',
+      role: UserRole.CANDIDATE,
+    },
+  });
+
+  if (existingCandidate) return;
+
   const candidate = await prisma.user.upsert({
     where: { email: 'candidate@devjudge.com' },
     update: {},
@@ -68,9 +91,17 @@ export async function main() {
       },
     },
   });
-  console.log(`✅ Candidate user seeded: ${candidate.email} / Candidate@123456`);
 
   // 4. Seed Problems
+  const existingProblem1 = await prisma.problem.findFirst({
+    where: {
+      slug: 'two-sum-problem-easy',
+      title: 'Two Sum Problem',
+    },
+  });
+
+  if (existingProblem1) return;
+
   const problem1 = await prisma.problem.upsert({
     where: { slug: 'two-sum-problem-easy' },
     update: {},
@@ -97,6 +128,15 @@ export async function main() {
     },
   });
 
+  const existingProblem2 = await prisma.problem.findFirst({
+    where: {
+      title: 'Valid Parentheses Checker',
+      slug: 'valid-parentheses-medium',
+    },
+  });
+
+  if (existingProblem2) return;
+
   const problem2 = await prisma.problem.upsert({
     where: { slug: 'valid-parentheses-medium' },
     update: {},
@@ -122,6 +162,15 @@ export async function main() {
     },
   });
 
+  const existingProblem3 = await prisma.problem.findFirst({
+    where: {
+      title: 'JavaScript Event Loop & Microtasks',
+      slug: 'js-event-loop-microtasks',
+    },
+  });
+
+  if (existingProblem3) return;
+
   const problem3 = await prisma.problem.upsert({
     where: { slug: 'js-event-loop-microtasks' },
     update: {},
@@ -145,6 +194,15 @@ export async function main() {
     },
   });
 
+  const existingProblem4 = await prisma.problem.findFirst({
+    where: {
+      title: 'PostgreSQL B-Tree Index Optimization',
+      slug: 'sql-b-tree-indexing',
+    },
+  });
+
+  if (existingProblem4) return;
+
   const problem4 = await prisma.problem.upsert({
     where: { slug: 'sql-b-tree-indexing' },
     update: {},
@@ -167,9 +225,16 @@ export async function main() {
       correctAnswers: ['C'],
     },
   });
-  console.log(`✅ Seeded 4 Coding & MCQ problems.`);
 
   // 5. Seed Assessment
+  const existingAssessment = await prisma.assessment.findFirst({
+    where: {
+      title: 'Full Stack Backend Engineer Screening Assessment',
+    },
+  });
+
+  if (existingAssessment) return;
+
   const assessment = await prisma.assessment.create({
     data: {
       title: 'Full Stack Backend Engineer Screening Assessment',
@@ -190,9 +255,16 @@ export async function main() {
       },
     },
   });
-  console.log(`✅ Assessment created: "${assessment.title}" (Total Marks: 100)`);
 
   // 6. Seed Assessment Candidate Invitation & Completed Attempt
+  const existingCandidateAssessment = await prisma.assessmentCandidate.findFirst({
+    where: {
+      invitationToken: 'test-invitation-token-demo-alex-rivera-12345',
+    },
+  });
+
+  if (existingCandidateAssessment) return;
+
   const candidateAssessment = await prisma.assessmentCandidate.create({
     data: {
       assessmentId: assessment.id,
@@ -233,18 +305,6 @@ export async function main() {
       },
     },
   });
-  console.log(
-    `✅ Candidate invitation & sample evaluated submission completed (Score: 80/100, Passed: true)`,
-  );
 
-  console.log('🎉 Seeding successfully finished!');
+  console.log('Seeding successfully finished!');
 }
-
-// main()
-//   .catch(e => {
-//     console.error('❌ Seeding failed:', e);
-//     process.exit(1);
-//   })
-//   .finally(async () => {
-//     await prisma.$disconnect();
-//   });
