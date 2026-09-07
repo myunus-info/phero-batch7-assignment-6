@@ -166,7 +166,7 @@ const updateProblem = async (
   });
 
   if (!problem || problem.isDeleted) {
-    throw new ApiError(404, 'Problem not found.');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Problem not found.');
   }
 
   if (userRole !== UserRole.ADMIN && problem.creatorId !== userId) {
