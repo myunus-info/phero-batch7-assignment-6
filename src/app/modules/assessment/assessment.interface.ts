@@ -1,28 +1,28 @@
-import { AssessmentStatus } from '../../../generated/prisma/enums';
+import type { AssessmentStatus } from "../../../generated/prisma/enums";
 
 export interface IAssessmentFilterRequest {
-  searchTerm?: string;
-  status?: AssessmentStatus;
-  recruiterId?: string;
+	searchTerm?: string;
+	status?: AssessmentStatus;
+	recruiterId?: string;
 }
 
 export interface ICreateAssessmentRequest {
-  title: string;
-  description?: string;
-  durationMinutes: number;
-  totalMarks?: number;
-  passingMarks: number;
-  scheduleStart?: string;
-  scheduleEnd?: string;
-  status?: AssessmentStatus;
-  problemIds: Array<{
-    problemId: string;
-    orderIndex?: number;
-    customPoints?: number;
-  }>;
+	title: string;
+	description?: string;
+	durationMinutes: number;
+	totalMarks?: number;
+	passingMarks: number;
+	scheduleStart?: string;
+	scheduleEnd?: string;
+	status?: AssessmentStatus;
+	problemIds: Array<{
+		problemId: string;
+		orderIndex?: number;
+		customPoints?: number;
+	}>;
 }
 
 export interface IInviteCandidateRequest {
-  email: string;
-  candidateId?: string;
+	email: string;
+	candidateId?: string;
 }
