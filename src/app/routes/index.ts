@@ -4,7 +4,7 @@ import { UserRoutes } from '../modules/user/user.routes';
 import { ProblemRoutes } from '../modules/problem/problem.routes';
 import { AssessmentRoutes } from '../modules/assessment/assessment.routes';
 import { AttemptRoutes } from '../modules/attempt/attempt.routes';
-// import { PaymentRoutes } from '../modules/payment/payment.routes';
+import { PaymentRoutes } from '../modules/payment/payment.routes';
 import { AdminRoutes } from '../modules/admin/admin.routes';
 
 const router = express.Router();
@@ -30,10 +30,10 @@ const moduleRoutes = [
     path: '/attempts',
     route: AttemptRoutes,
   },
-  // {
-  //   path: '/payments',
-  //   route: PaymentRoutes,
-  // },
+  {
+    path: '/payments',
+    route: PaymentRoutes,
+  },
   {
     path: '/admin',
     route: AdminRoutes,
