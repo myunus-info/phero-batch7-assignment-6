@@ -1,106 +1,309 @@
-# Welcome to Prisma Next!
+# Prisma Setup and Migration Guide
 
-Prisma Next lets you query your database in simple, easy-to-read TypeScript. Define what your data looks like, and Prisma Next gives you a fully typed client — with autocomplete for every table, column, and relation.
+This project uses Prisma with PostgreSQL and a modular Express backend. The Prisma schema is split across multiple files in `prisma/schema/`, and the generated client is configured to live in `src/generated/prisma`.
 
-This project is set up for PostgreSQL. Prisma Next also supports other databases.
+## Project Prisma Overview
 
-## Requirements
+The Prisma configuration for this repository is defined in `prisma7.config.ts`:
 
-- **PostgreSQL 15 or newer.** Older servers are not supported. Run `SELECT version()` against your server to verify.
-- The CLI never connects to your database without explicit consent. Pass `--probe-db` to `npx prisma orm init` if you want `init` to verify the server version itself.
+```ts
+import { config } from './src/app/config/index';
+import { defineConfig } from 'prisma/config';
 
-## Your data contract
-
-Your data contract is the heart of your application. It lives at [`prisma/schema/schema.prisma`](prisma/schema/schema.prisma) and describes your models:
-
-```prisma
-model User {
-  id       Int     @id @default(autoincrement())
-  email    String  @unique
-  username String?
-  name     String?
-}
-```
-
-Every model you define in your contract can be queried from your app. Your editor will autocomplete the query methods and show you what type each model field is:
-
-```typescript
-import { db } from './prisma/schema/db';
-
-const user = await db.orm.public.User
-  .where({ email: 'alice@example.com' })
-  .first();
-
-// Your editor will show the type of user as
-// { id: number; email: string; username: string | null; name: string | null; createdAt: Date; posts: Post[] } | null
-```
-
-Your contract has two companion files in the same directory:
-
-- **`contract.json`** — this tells your application what models exist, just like `package-lock.json` tells your package manager what dependencies your project has
-- **`contract.d.ts`** — this powers autocomplete and type checking in your editor
-
-Commit both files to git. When you change your contract, run `npx prisma contract emit` to update them.
-
-If you use a framework like Next.js or Vite, the Prisma Next plugin will do this for you automatically.
-
-## Configuration
-
-[`prisma.config.ts`](prisma.config.ts) tells the CLI where your contract lives and how to connect to your database. It loads environment variables from `.env` automatically:
-
-```typescript
-import 'dotenv/config';
-import { definePrismaConfig } from '@prisma/cli-engine';
-import { defineConfig as ormConfig } from '@prisma/orm-postgres/config';
-
-export default definePrismaConfig({
-  orm: ormConfig({
-    contract: './prisma/schema/schema.prisma',
-    db: {
-      connection: process.env['DATABASE_URL']!,
-    },
-  }),
+export default defineConfig({
+  schema: 'prisma/schema',
+  migrations: {
+    path: 'prisma/migrations',
+  },
+  datasource: {
+    url: config.database_url,
+  },
 });
 ```
 
-Notice the `DATABASE_URL` above? It's defined in your [`.env`](./.env) file:
+This tells Prisma:
+
+- the schema directory is `prisma/schema`
+- migrations are stored in `prisma/migrations`
+- the datasource URL comes from `config.database_url` in the app config
+
+---
+
+## Prisma Schema Structure
+
+This repo does not keep all models in one file. Instead, the schema is split by domain:
+
+- `prisma/schema/schema.prisma` – root Prisma config and generator setup
+- `prisma/schema/user.prisma` – User model
+- `prisma/schema/recruiter.prisma` – Recruiter profile model
+- `prisma/schema/candidate.prisma` – Candidate profile model
+- `prisma/schema/problem.prisma` – Problem model
+- `prisma/schema/assessment.prisma` – Assessment and related models
+- `prisma/schema/submission.prisma` – Submission model
+- `prisma/schema/payment.prisma` – Payment model
+- `prisma/schema/auditlog.prisma` – Audit log model
+- `prisma/schema/enums.prisma` – Shared enums
+
+Root file:
+
+```prisma
+generator client {
+  provider = "prisma-client"
+  output   = "../../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+```
+
+This setup generates Prisma artifacts inside `src/generated/prisma`, and the runtime client is then imported from:
+
+```ts
+import { PrismaClient } from '../../generated/prisma/client';
+```
+
+---
+
+## Database Connection
+
+The app connects to PostgreSQL using the `DATABASE_URL` environment variable loaded in `src/app/config/index.ts`:
+
+```ts
+export const config = {
+  env: process.env.NODE_ENV || 'development',
+  port: process.env.PORT || 5000,
+  database_url: process.env.DATABASE_URL,
+  // ...
+};
+```
+
+The Prisma client is initialized in `src/app/lib/prisma.ts`:
+
+```ts
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '../../generated/prisma/client';
+import { config } from '../config';
+
+const connectionString = `${config.database_url}`;
+
+const adapter = new PrismaPg({ connectionString });
+const prisma = new PrismaClient({ adapter });
+
+export { prisma };
+```
+
+This means the project is using Prisma with the PostgreSQL adapter (`@prisma/adapter-pg`).
+
+---
+
+## Required Environment Variables
+
+Create a `.env` file in the root of the project:
 
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/mydb"
+DATABASE_URL="postgresql://postgres:your_password@localhost:5432/devjudge_db"
+JWT_SECRET="your-secret-key"
+JWT_REFRESH_SECRET="your-refresh-secret"
+STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+CLIENT_URL="http://localhost:3000"
 ```
 
-You can customize how your environment variables are loaded by changing or removing the `import 'dotenv/config'` line.
+If the database URL is missing, Prisma commands and app startup will fail because the app depends on it for runtime database access.
 
-## Quick reference
+---
 
-### Commands
+## Common Prisma Commands
+
+From the project root:
 
 ```bash
-npx prisma contract emit       # Update contract.json and contract.d.ts
-npx prisma db init             # Create tables in the database
-npx prisma migration status    # Show migration status
+# Generate Prisma client after schema changes
+npx prisma generate
+
+# Create a new migration from schema updates
+npx prisma migrate dev --name <migration_name>
+
+# Apply pending migrations
+npx prisma migrate deploy
+
+# View current migration status
+npx prisma migrate status
+
+# Open Prisma Studio
+npx prisma studio
+
+# Validate the schema
+npx prisma validate
 ```
 
-### Files
+For this repository specifically, the normal dev workflow is:
 
-| File | Purpose |
-|---|---|
-| [`prisma/schema/schema.prisma`](prisma/schema/schema.prisma) | Your data contract — define your models here |
-| [`prisma.config.ts`](prisma.config.ts) | CLI configuration |
-| [`prisma/schema/db.ts`](prisma/schema/db.ts) | Database client — `import { db } from './prisma/schema/db'` |
-| `prisma/schema/contract.json` | Compiled contract (generated) |
-| `prisma/schema/contract.d.ts` | Contract types (generated) |
+```bash
+npm install
+npx prisma generate
+npx prisma migrate dev --name init
+npm run dev
+```
 
-### Workflow
+---
 
-1. Edit [`prisma/schema/schema.prisma`](prisma/schema/schema.prisma) to add or change models.
-2. Run `npx prisma contract emit` to regenerate the contract.
-3. Query your models — your IDE will autocomplete everything.
+## Migrations
 
-## Monorepo notes (pnpm workspaces)
+Migrations live in:
 
-If this project lives inside a pnpm workspace, a few things are worth knowing:
+```text
+prisma/migrations/
+```
 
-- **Catalogs.** When the workspace's `pnpm-workspace.yaml` defines a `catalogs` entry for `prisma` or `@prisma/orm-postgres`, pnpm uses the catalog version everywhere — `init` does too. If you wanted the published `latest` instead, update or remove the catalog entry, then re-run `pnpm install`.
-- **`pnpm dlx`.** `pnpm dlx prisma@next orm init …` works in any directory. Inside a workspace, pnpm still resolves dependencies through the workspace's catalog/overrides rather than the registry; expect the installed Prisma Next packages to reflect the workspace's catalog rather than `latest`.
-- **`pnpm` → `npm` fallback.** If `pnpm` ever fails to install Prisma Next with a `workspace:*` or `catalog:` resolution error (a leak in a published artefact), `init` falls back to `npm install` and surfaces a warning. Once the offending package republishes a clean version you can switch back with `pnpm install`.
+This repo already includes an initial migration folder and a migration lock file. When you change the schema, generate a new migration instead of editing the SQL manually unless a custom migration is absolutely required.
+
+Example:
+
+```bash
+npx prisma migrate dev --name add_new_assessment_field
+```
+
+This will:
+
+- update the Prisma schema state
+- create a migration file under `prisma/migrations`
+- apply the migration to the local database
+
+---
+
+## Important Schema Design Notes
+
+### Enums
+
+The project uses several enums in `prisma/schema/enums.prisma`, including:
+
+- `UserRole`
+- `UserStatus`
+- `DifficultyLevel`
+- `ProblemType`
+- `AssessmentStatus`
+- `CandidateAssessmentStatus`
+- `SubmissionStatus`
+- `PaymentStatus`
+
+These enums drive access control, candidate states, problem difficulty, and payment outcomes.
+
+### Core Models
+
+The main entities are:
+
+- `User`
+- `RecruiterProfile`
+- `CandidateProfile`
+- `Problem`
+- `Assessment`
+- `AssessmentProblem`
+- `AssessmentCandidate`
+- `Submission`
+- `Payment`
+- `AuditLog`
+
+These models form the assessment/recruitment platform domain and are critical to the backend workflow.
+
+---
+
+## Generated Client
+
+Because the schema uses a custom output directory:
+
+```prisma
+generator client {
+  provider = "prisma-client"
+  output   = "../../src/generated/prisma"
+}
+```
+
+new generated files are created under:
+
+```text
+src/generated/prisma/
+```
+
+This generated folder is part of the app’s runtime and is used by TypeScript imports in the service and utility layers.
+
+---
+
+## Seeding and Data Setup
+
+The project includes a seed script in `src/app/utils/seed.ts`. It is designed to create demo content for:
+
+- admin account
+- recruiter account
+- candidate account
+- sample problems
+- one published assessment
+- sample submissions
+
+The seed script is run during server startup. That allows the app to be demo-ready without manual database setup beyond migrations.
+
+---
+
+## Troubleshooting
+
+### Prisma client not found
+
+If you see errors about missing generated Prisma client files:
+
+```bash
+npx prisma generate
+```
+
+### Database connection errors
+
+Check the `.env` file and confirm the connection string is valid:
+
+```bash
+npx prisma db ping
+```
+
+### Migration drift
+
+If the database and schema drift out of sync:
+
+```bash
+npx prisma migrate status
+npx prisma migrate dev
+```
+
+### Need to reset a local database
+
+For local development only:
+
+```bash
+npx prisma migrate reset
+```
+
+---
+
+## Recommended Workflow for This Project
+
+Use this sequence whenever the schema or data model changes:
+
+1. Update the Prisma schema in `prisma/schema/*.prisma`
+2. Run `npx prisma generate`
+3. If the schema changed structurally, run `npx prisma migrate dev --name <change>`
+4. Verify with `npx prisma validate`
+5. Start the app with `npm run dev`
+
+This keeps the code, database, and generated Prisma client aligned.
+
+---
+
+## Summary
+
+This project uses standard Prisma v7-style schema management with a PostgreSQL datasource and a generated client directory inside `src/generated/prisma`. The key files to remember are:
+
+- `prisma7.config.ts`
+- `prisma/schema/schema.prisma`
+- `prisma/schema/*.prisma`
+- `src/app/lib/prisma.ts`
+- `src/app/utils/seed.ts`
+
+The repository is set up for a real backend assessment platform and uses Prisma as the source of truth for all app data.
