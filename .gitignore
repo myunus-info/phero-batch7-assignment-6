@@ -17,6 +17,7 @@ pnpm-workspace.yaml
 .agents/
 .claude/
 .windsurf/
+.kilo/
 
 /generated/prisma
 node_modules/
