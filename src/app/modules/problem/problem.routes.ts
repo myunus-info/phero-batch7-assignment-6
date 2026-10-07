@@ -8,35 +8,23 @@ import { UserRole } from "../../../generated/prisma/enums";
 const router = express.Router();
 
 router.post(
-	"/",
-	auth(UserRole.ADMIN, UserRole.RECRUITER),
-	validateRequest(ProblemValidation.createProblemValidationSchema as any),
-	ProblemController.createProblem,
+  "/",
+  auth(UserRole.ADMIN, UserRole.RECRUITER),
+  validateRequest(ProblemValidation.createProblemValidationSchema as any),
+  ProblemController.createProblem,
 );
 
-router.get(
-	"/",
-	auth(UserRole.ADMIN, UserRole.RECRUITER, UserRole.CANDIDATE),
-	ProblemController.getAllProblems,
-);
+router.get("/", ProblemController.getAllProblems);
 
-router.get(
-	"/:id",
-	auth(UserRole.ADMIN, UserRole.RECRUITER, UserRole.CANDIDATE),
-	ProblemController.getProblemById,
-);
+router.get("/:id", ProblemController.getProblemById);
 
 router.patch(
-	"/:id",
-	auth(UserRole.ADMIN, UserRole.RECRUITER),
-	validateRequest(ProblemValidation.updateProblemValidationSchema as any),
-	ProblemController.updateProblem,
+  "/:id",
+  auth(UserRole.ADMIN, UserRole.RECRUITER),
+  validateRequest(ProblemValidation.updateProblemValidationSchema as any),
+  ProblemController.updateProblem,
 );
 
-router.delete(
-	"/:id",
-	auth(UserRole.ADMIN, UserRole.RECRUITER),
-	ProblemController.softDeleteProblem,
-);
+router.delete("/:id", auth(UserRole.ADMIN, UserRole.RECRUITER), ProblemController.softDeleteProblem);
 
 export const ProblemRoutes = router;
