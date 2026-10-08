@@ -8,24 +8,16 @@ import validateRequest from "../../middleware/validateRequest";
 const router = express.Router();
 
 router.post(
-	"/create-checkout-session",
-	auth(UserRole.RECRUITER, UserRole.ADMIN),
-	validateRequest(
-		PaymentValidation.createCheckoutSessionValidationSchema as any,
-	),
-	PaymentController.createCheckoutSession,
+  "/create-checkout-session",
+  auth(UserRole.RECRUITER, UserRole.ADMIN),
+  validateRequest(PaymentValidation.createCheckoutSessionValidationSchema as any),
+  PaymentController.createCheckoutSession,
 );
 
-router.post(
-	"/webhook",
-	express.raw({ type: "application/json" }),
-	PaymentController.handleWebhook,
-);
+router.post("/verify-session", auth(UserRole.RECRUITER, UserRole.ADMIN), PaymentController.verifyCheckoutSession);
 
-router.get(
-	"/my-history",
-	auth(UserRole.ADMIN, UserRole.RECRUITER),
-	PaymentController.getPaymentHistory,
-);
+router.post("/webhook", express.raw({ type: "application/json" }), PaymentController.handleWebhook);
+
+router.get("/my-history", auth(UserRole.ADMIN, UserRole.RECRUITER), PaymentController.getPaymentHistory);
 
 export const PaymentRoutes = router;
