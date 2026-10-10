@@ -15,7 +15,7 @@ const app: Application = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: [config.stripe.client_url, "http://localhost:3000", "http://localhost:5173"],
+    origin: [config.stripe.client_url, "https://devjudgelivecoding.vercel.app"],
     credentials: true,
   }),
 );
