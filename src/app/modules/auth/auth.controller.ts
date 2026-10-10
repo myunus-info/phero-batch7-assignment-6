@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { AuthService } from "./auth.service";
-import { config } from "../../config";
+import handleCookies from "./auth.util";
 
 const register = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthService.registerUser(req.body, req.ip);
@@ -19,18 +19,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthService.loginUser(req.body, req.ip);
   const { accessToken, refreshToken, ...responsePayload } = result;
 
-  res.cookie("accessToken", accessToken, {
-    secure: config.env === "production",
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 24 * 60 * 60 * 1000,
-  });
-  res.cookie("refreshToken", refreshToken, {
-    secure: config.env === "production",
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  handleCookies({ type: "login", res, accessToken, refreshToken });
 
   sendResponse(res, {
     statusCode: 200,
@@ -44,18 +33,7 @@ const googleLogin = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthService.googleLogin(req.body, req.ip);
   const { accessToken, refreshToken, ...responsePayload } = result;
 
-  res.cookie("accessToken", accessToken, {
-    secure: config.env === "production",
-    httpOnly: true,
-    sameSite: config.env === "production" ? "none" : "lax",
-    maxAge: 24 * 60 * 60 * 1000,
-  });
-  res.cookie("refreshToken", refreshToken, {
-    secure: config.env === "production",
-    httpOnly: true,
-    sameSite: config.env === "production" ? "none" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  handleCookies({ type: "login", res, accessToken, refreshToken });
 
   sendResponse(res, {
     statusCode: 200,
@@ -78,17 +56,7 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
 });
 
 const logout = catchAsync(async (req: Request, res: Response) => {
-  res.clearCookie("accessToken", {
-    secure: config.env === "production",
-    httpOnly: true,
-    sameSite: config.env === "production" ? "none" : "lax",
-  });
-
-  res.clearCookie("refreshToken", {
-    secure: config.env === "production",
-    httpOnly: true,
-    sameSite: config.env === "production" ? "none" : "lax",
-  });
+  handleCookies({ type: "logout", res });
 
   sendResponse(res, {
     statusCode: 200,
