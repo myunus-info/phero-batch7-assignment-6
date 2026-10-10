@@ -1,725 +1,845 @@
-# DevJudge API
+# DevJudge API — Developer Assessment & Live Coding Platform Backend
 
-A TypeScript-based Express backend for a recruitment and assessment platform that allows recruiters to create coding and multiple-choice problems, invite candidates to assessments, capture submissions, manage user accounts, and process credits for candidate invites via Stripe-compatible flows.
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg?logo=typescript)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg?logo=node.js)](https://nodejs.org/)
+[![Express.js](https://img.shields.io/badge/Express-5.x-lightgrey.svg?logo=express)](https://expressjs.com/)
+[![Prisma ORM](https://img.shields.io/badge/Prisma-7.x-2D3748.svg?logo=prisma)](https://www.prisma.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-336791.svg?logo=postgresql)](https://www.postgresql.org/)
+[![License: ISC](https://img.shields.io/badge/License-ISC-yellow.svg)](https://opensource.org/licenses/ISC)
 
-This project is designed around a role-based model with three primary user types:
-
-- Admin
-- Recruiter
-- Candidate
-
-The app uses PostgreSQL with Prisma ORM, JWT-based authentication, cookie-based session handling, and a modular Express architecture.
+**DevJudge API** is an enterprise-grade backend service built for automated technical recruitment, developer assessment, and live coding challenges. It provides a full lifecycle workflow: recruiters author algorithmic coding challenges and multiple-choice questions, build timed assessments with custom grading thresholds, purchase candidate invitation credit packs via Stripe, and review candidate performance. Candidates take secure assessments with a sandboxed Node.js test execution runner, while platform administrators maintain governance, inspect real-time audit logs, and oversee system metrics.
 
 ---
 
 ## Table of Contents
 
-- [DevJudge API](#devjudge-api)
+- [DevJudge API — Developer Assessment & Live Coding Platform Backend](#devjudge-api--developer-assessment--live-coding-platform-backend)
   - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Features](#features)
-    - [Authentication and User Management](#authentication-and-user-management)
-    - [Recruiter Tools](#recruiter-tools)
-    - [Candidate Experience](#candidate-experience)
-    - [Administration](#administration)
-    - [Data and Platform Features](#data-and-platform-features)
-  - [Technology Stack](#technology-stack)
-  - [Project Architecture](#project-architecture)
-  - [Folder Structure](#folder-structure)
-  - [Prerequisites](#prerequisites)
-  - [Environment Configuration](#environment-configuration)
-  - [Installation and Setup](#installation-and-setup)
-  - [Database Setup](#database-setup)
-  - [Running the Application](#running-the-application)
-  - [Available Scripts](#available-scripts)
-  - [Seeded Demo Accounts](#seeded-demo-accounts)
-    - [Admin](#admin)
-    - [Recruiter](#recruiter)
-    - [Candidate](#candidate)
-  - [Core Domain Models](#core-domain-models)
-    - [User](#user)
-    - [Problem](#problem)
-    - [Assessment](#assessment)
-    - [AssessmentCandidate](#assessmentcandidate)
-    - [Submission](#submission)
-    - [Payment](#payment)
-    - [RecruiterProfile / CandidateProfile](#recruiterprofile--candidateprofile)
-  - [API Endpoints](#api-endpoints)
-    - [Authentication Routes](#authentication-routes)
-      - [Register a new user](#register-a-new-user)
-      - [Login](#login)
-      - [Google login](#google-login)
-      - [Refresh token](#refresh-token)
-      - [Logout](#logout)
-    - [User Routes](#user-routes)
-    - [Problem Routes](#problem-routes)
-    - [Assessment Routes](#assessment-routes)
-    - [Candidate Attempt Routes](#candidate-attempt-routes)
-    - [Payment Routes](#payment-routes)
-    - [Admin Routes](#admin-routes)
-  - [Authentication and Authorization](#authentication-and-authorization)
-  - [Payment Flow](#payment-flow)
-    - [Credit plans](#credit-plans)
-    - [Payment behavior](#payment-behavior)
-  - [Security and Middleware](#security-and-middleware)
-  - [Known Notes and Limitations](#known-notes-and-limitations)
+  - [Architecture & System Flow](#architecture--system-flow)
+  - [Core Features](#core-features)
+  - [Role-Based Access Control (RBAC)](#role-based-access-control-rbac)
+  - [Tech Stack & Dependencies](#tech-stack--dependencies)
+  - [Data Model & Prisma Schema](#data-model--prisma-schema)
+  - [Code Evaluation & Execution Engine](#code-evaluation--execution-engine)
+  - [Project Structure](#project-structure)
+  - [Environment Variables](#environment-variables)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Installation](#installation)
+    - [Database Setup & Migration](#database-setup--migration)
+    - [Running the App](#running-the-app)
+  - [Pre-Seeded Demo Accounts](#pre-seeded-demo-accounts)
+  - [API Reference](#api-reference)
+    - [1. Authentication Module (`/api/v1/auth`)](#1-authentication-module-apiv1auth)
+    - [2. User Module (`/api/v1/users`)](#2-user-module-apiv1users)
+    - [3. Problem Management Module (`/api/v1/problems`)](#3-problem-management-module-apiv1problems)
+    - [4. Assessment Module (`/api/v1/assessments`)](#4-assessment-module-apiv1assessments)
+    - [5. Candidate Attempt & Evaluation Module (`/api/v1/attempts`)](#5-candidate-attempt--evaluation-module-apiv1attempts)
+    - [6. Payment & Recruiter Credits Module (`/api/v1/payments`)](#6-payment--recruiter-credits-module-apiv1payments)
+    - [7. Admin Governance Module (`/api/v1/admin`)](#7-admin-governance-module-apiv1admin)
+  - [Security & Architectural Highlights](#security--architectural-highlights)
+  - [Available NPM Scripts](#available-npm-scripts)
+  - [Troubleshooting & FAQ](#troubleshooting--faq)
   - [License](#license)
-  - [Summary](#summary)
-  - [Quick Start Example](#quick-start-example)
 
 ---
 
-## Overview
+## Architecture & System Flow
 
-DevJudge API is a backend service built for developer assessment workflows. Recruiters can:
+The system employs a layered, domain-driven Express + TypeScript architecture. Cross-cutting concerns like JWT authorization, Zod schema validation, audit logging, and rate limiting surround modular business services.
 
-- create and manage coding or MCQ problems
-- organize them into assessments
-- invite candidates by email
-- purchase candidate invitation credits
-- review assessment results and payment logs
+```mermaid
+flowchart TD
+    Client["Client Applications\n(Web / Assessment Portal / Admin UI)"]
+    
+    subgraph Gateway ["Express 5 Application Gateway"]
+        Security["Helmet & CORS & Cookie Parser"]
+        RateLimit["Rate Limiting\n(Global & Auth Limiter)"]
+        Router["Module Router\n(/api/v1)"]
+        AuthMiddleware["Auth Middleware\n(JWT & Role Verification)"]
+        ZodValidation["Zod Request Validator"]
+    end
 
-Candidates can:
+    subgraph Modules ["Domain Service Modules"]
+        AuthModule["Auth Service\n(Bcrypt / Google OAuth / JWT)"]
+        ProblemModule["Problem Service\n(MCQ & Coding Problems)"]
+        AssessmentModule["Assessment Service\n(Scheduling & Credits)"]
+        AttemptModule["Attempt Service\n(Submissions & Scoring)"]
+        PaymentModule["Payment Service\n(Stripe Checkout & Webhooks)"]
+        AdminModule["Admin Service\n(Metrics & Audit Logs)"]
+    end
 
-- log in or authenticate with Google
-- view assigned assessments
-- start an assessment attempt
-- submit answers or code for each problem
-- finish the assessment and view results
+    subgraph Runtime ["Execution Engine"]
+        Runner["Node.js Subprocess Runner\n(spawnSync / Sandbox / Stdin Caching)"]
+    end
 
-Admins can:
+    subgraph Persistence ["Persistence Layer"]
+        PrismaClient["Prisma ORM v7 (@prisma/adapter-pg)"]
+        Postgres[(PostgreSQL Database)]
+        AuditLogStore[(Audit Logs)]
+    end
 
-- manage users and roles
-- review platform statistics
-- inspect audit logs
-- block or reactivate accounts
+    Client --> Security --> RateLimit --> Router --> AuthMiddleware --> ZodValidation
+    ZodValidation --> AuthModule
+    ZodValidation --> ProblemModule
+    ZodValidation --> AssessmentModule
+    ZodValidation --> AttemptModule
+    ZodValidation --> PaymentModule
+    ZodValidation --> AdminModule
 
----
+    AttemptModule --> Runner
+    
+    AuthModule --> PrismaClient
+    ProblemModule --> PrismaClient
+    AssessmentModule --> PrismaClient
+    AttemptModule --> PrismaClient
+    PaymentModule --> PrismaClient
+    AdminModule --> PrismaClient
 
-## Features
-
-### Authentication and User Management
-
-- Email/password registration
-- Google social login
-- JWT access and refresh tokens
-- Cookie-based authentication
-- Role-based access control for admin, recruiter, and candidate routes
-- User blocking and soft deletion support
-
-### Recruiter Tools
-
-- Create, update, and soft-delete problems
-- Create and manage assessments
-- Add problems to assessments with custom scoring
-- Invite candidates to assessments
-- Track assessment status and results
-- Purchase recruiter credits for candidate invites
-
-### Candidate Experience
-
-- View assigned assessments
-- Start and complete assessment attempts
-- Submit code or multiple-choice answers
-- Receive scoring feedback and final result summaries
-
-### Administration
-
-- Dashboard stats for users, problems, assessments, and attempts
-- User management and role updates
-- Audit log reviews
-- Payment history visibility for admins and recruiters
-
-### Data and Platform Features
-
-- Prisma ORM with PostgreSQL
-- Schema-driven models and enum-based status handling
-- Seed data for demo users and sample assessment content
-- Global error handling and validation middleware
-- Rate limiting and HTTP security headers
+    PrismaClient --> Postgres
+    PrismaClient --> AuditLogStore
+```
 
 ---
 
-## Technology Stack
+## Core Features
 
-- Node.js + TypeScript
-- Express.js v5
-- PostgreSQL
-- Prisma ORM v7
-- Zod validation
-- JWT (jsonwebtoken)
-- bcryptjs for password hashing
-- Google OAuth verification with `google-auth-library`
-- Stripe payment integration
-- Helmet, CORS, cookie-parser, express-rate-limit, morgan
-- Biome for linting and formatting
-
----
-
-## Project Architecture
-
-The project follows a modular backend structure with route modules, services, controllers, validation, and middleware. The server bootstraps Express, loads configuration, and connects to PostgreSQL through Prisma.
-
-Main architectural flow:
-
-1. Client sends request to Express server
-2. Middleware validates request data and auth state
-3. Route module dispatches to controller
-4. Controller calls service layer
-5. Service interacts with Prisma and business logic
-6. Response is sent using a standard success envelope
-7. Audit logs capture important actions
-
-This architecture is organized around business domains such as:
-
-- `auth`
-- `user`
-- `problem`
-- `assessment`
-- `attempt`
-- `payment`
-- `admin`
+- **Multi-Role Authentication**: Email/Password registration, bcrypt hashing (12 rounds), Google OAuth 2.0 social sign-in, JWT access (7d) & refresh (30d) tokens, and HTTP-only cookie support.
+- **Problem Bank Management**:
+  - Support for `CODING`, `MCQ` (multiple selection), and `SINGLE_CHOICE` problems.
+  - Difficulty grading: `EASY`, `MEDIUM`, `HARD`.
+  - Rich problem schemas containing starter code, hidden/visible test cases, correct answers, and runtime time limits.
+  - Role-aware privacy: Candidates viewing problems never see correct answers or hidden test cases.
+- **Assessment Management**:
+  - Custom multi-problem evaluation sessions with configurable duration, total marks, and passing score thresholds.
+  - Granular problem ordering (`orderIndex`) and custom problem weights (`customPoints`).
+  - Scheduling constraints with `scheduleStart` and `scheduleEnd` time windows.
+  - Candidate invitation system deducting 1 recruiter credit per invitation token.
+- **Interactive Code Evaluator**:
+  - Dynamic JavaScript/Node.js solution evaluation using isolated child processes (`spawnSync`).
+  - Stdin interception and `fs.readFileSync(0, "utf-8")` caching to prevent multiple read consumption issues.
+  - Support for both direct standard output logging (`console.log`) and returning values from `solution()` functions.
+  - Time Limit Exceeded (TLE) protection (3000ms default per test case).
+  - Normalization of carriage returns (`\r\n` vs `\n`) and trailing whitespace for resilient assertion checks.
+- **Live Run vs. Final Submit**:
+  - `POST /attempts/:id/run-code`: Test execution sandbox returning visible test case feedback without persisting submissions or penalizing attempts.
+  - `POST /attempts/:id/submit-problem`: Formal grading against all test cases (both visible and hidden), calculating proportional points and recording database submission state.
+  - `POST /attempts/:id/finish`: Automatic overall score aggregation and pass/fail determination.
+- **Recruiter Credit System & Stripe Payments**:
+  - Credit tiers: `STARTER_PACK` (25 credits, $29), `PRO_PACK` (75 credits, $79), and `ENTERPRISE_PACK` (250 credits, $199).
+  - Stripe Checkout Session creation and webhook fulfillment (`checkout.session.completed`).
+  - Fallback simulation mode enabling local testing even without active Stripe credentials.
+- **Comprehensive Audit Logging**:
+  - Automatic audit tracking for high-impact actions (`REGISTER_USER`, `LOGIN_USER`, `CREATE_PROBLEM`, `START_ASSESSMENT`, `SUBMIT_PROBLEM`, `FINISH_ASSESSMENT`, `INVITE_CANDIDATE`, `PAYMENT_COMPLETED`).
+- **Administrative Governance**:
+  - Platform-wide statistics: total users, candidates, recruiters, problems, assessments, attempts, pass rate percentage, and gross transaction revenue.
+  - User role assignment and status control (blocking/reactivating accounts).
+  - Detailed audit log filtering and inspection.
 
 ---
 
-## Folder Structure
+## Role-Based Access Control (RBAC)
+
+The platform enforces strict role-based authorization:
+
+| Resource / Endpoint | CANDIDATE | RECRUITER | ADMIN |
+| :--- | :---: | :---: | :---: |
+| Register / Login / Google Auth / Refresh | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| Profile View & Update (`/users/me`) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| Browse Public Problems (`GET /problems`) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| View Problem Details (Hides Secrets) | :white_check_mark: (Sanitized) | :white_check_mark: (Full) | :white_check_mark: (Full) |
+| Create / Update / Delete Problems | :x: | :white_check_mark: (Own) | :white_check_mark: (All) |
+| Create / Manage Assessments | :x: | :white_check_mark: (Own) | :white_check_mark: (All) |
+| Invite Candidates (Requires Credits) | :x: | :white_check_mark: | :white_check_mark: |
+| Candidate Assessments (`/attempts/my-assessments`) | :white_check_mark: | :x: | :x: |
+| Start / Run / Submit / Finish Attempt | :white_check_mark: | :x: | :x: |
+| View Final Attempt Result | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| Buy Recruiter Credits (Stripe Checkout) | :x: | :white_check_mark: | :white_check_mark: |
+| View Payment History | :x: | :white_check_mark: (Own) | :white_check_mark: (All) |
+| Manage User Statuses & Roles | :x: | :x: | :white_check_mark: |
+| Platform Analytics Dashboard | :x: | :x: | :white_check_mark: |
+| View Audit Logs | :x: | :x: | :white_check_mark: |
+
+---
+
+## Tech Stack & Dependencies
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Runtime & Language** | Node.js (v20+ recommended), TypeScript (v5.x), ES Modules |
+| **Web Framework** | Express.js (v5.2.x) |
+| **Database & ORM** | PostgreSQL, Prisma ORM (v7.10.x) with `@prisma/adapter-pg` driver adapter |
+| **Authentication & Crypto**| JWT (`jsonwebtoken`), `bcryptjs`, `google-auth-library` |
+| **Validation** | Zod (v4.x) |
+| **Payments** | Stripe API (`stripe` v22.x) with Checkout Sessions & Webhooks |
+| **Security & Utilities** | `helmet`, `cors`, `cookie-parser`, `express-rate-limit`, `morgan`, `http-status` |
+| **Bundler & Tooling** | `tsup`, `tsx` (live reloader), Biome (`@biomejs/biome`) for linting & formatting |
+
+---
+
+## Data Model & Prisma Schema
+
+The Prisma configuration is modularized into discrete schema files inside `prisma/schema/` and managed through `prisma7.config.ts`:
+
+```mermaid
+erDiagram
+    User ||--o| RecruiterProfile : "has"
+    User ||--o| CandidateProfile : "has"
+    User ||--o{ Problem : "creates"
+    User ||--o{ Assessment : "authors"
+    User ||--o{ AssessmentCandidate : "assigned as candidate"
+    User ||--o{ Submission : "submits"
+    User ||--o{ Payment : "initiates"
+    User ||--o{ AuditLog : "triggers"
+
+    Assessment ||--o{ AssessmentProblem : "contains"
+    Problem ||--o{ AssessmentProblem : "referenced by"
+    
+    Assessment ||--o{ AssessmentCandidate : "invites"
+    AssessmentCandidate ||--o{ Submission : "records"
+    Problem ||--o{ Submission : "evaluated against"
+
+    User {
+        string id PK
+        string email UK
+        string password
+        UserRole role
+        UserStatus status
+        boolean isDeleted
+        datetime createdAt
+    }
+
+    RecruiterProfile {
+        string id PK
+        string userId FK
+        string companyName
+        int credits
+    }
+
+    CandidateProfile {
+        string id PK
+        string userId FK
+        string headline
+        string[] skills
+    }
+
+    Problem {
+        string id PK
+        string title
+        string slug UK
+        DifficultyLevel difficulty
+        ProblemType problemType
+        int points
+        json testCases
+        json correctAnswers
+        boolean isDeleted
+    }
+
+    Assessment {
+        string id PK
+        string title
+        string recruiterId FK
+        int durationMinutes
+        int totalMarks
+        int passingMarks
+        AssessmentStatus status
+        boolean isDeleted
+    }
+
+    AssessmentProblem {
+        string id PK
+        string assessmentId FK
+        string problemId FK
+        int orderIndex
+        int customPoints
+    }
+
+    AssessmentCandidate {
+        string id PK
+        string assessmentId FK
+        string candidateId FK
+        string candidateEmail
+        string invitationToken UK
+        CandidateAssessmentStatus status
+        int totalScore
+        boolean isPassed
+    }
+
+    Submission {
+        string id PK
+        string assessmentCandidateId FK
+        string problemId FK
+        string candidateId FK
+        string submittedCode
+        json selectedOptions
+        json executionResult
+        int scoreAwarded
+        SubmissionStatus status
+    }
+
+    Payment {
+        string id PK
+        string userId FK
+        string stripeSessionId UK
+        float amount
+        int creditsPurchased
+        PaymentStatus status
+    }
+```
+
+---
+
+## Code Evaluation & Execution Engine
+
+Coding solutions are evaluated dynamically using a sandboxed Node.js runner located at [`src/app/utils/codeEvaluator.ts`](file:///e:/Programming/phero-batch7-course/assignments/assignment-6/src/app/utils/codeEvaluator.ts):
+
+1. **Isolation**: When candidate code is evaluated, the system generates an ephemeral script in the operating system's temp directory (`os.tmpdir()`).
+2. **Standard Input Hooking**: Intercepts `fs.readFileSync` for file descriptor `0` (`/dev/stdin`) to allow solutions to read inputs cleanly multiple times.
+3. **Console Output Interception**: Wraps `console.log` to buffer output into an internal string stream, while also supporting function return values if candidate exports a `solution(...)` function.
+4. **Child Process Execution**: Runs the generated script using Node.js child process `spawnSync`:
+   - Configurable timeout (default: 3000 ms) preventing infinite loops.
+   - Buffer limit cap (`1024 * 1024` bytes) preventing memory exhaustion.
+5. **Output Normalization**: Strips Windows line breaks (`\r\n` $\rightarrow$ `\n`) and trims trailing whitespace across all lines before asserting against `tc.expectedOutput`.
+6. **Graceful Cleanup**: The ephemeral script is safely unlinked (`fs.unlinkSync`) inside a `finally` block regardless of pass/fail/error outcome.
+
+---
+
+## Project Structure
 
 ```text
 assignment-6/
 ├── prisma/
-│   ├── migrations/
-│   └── schema/
-│       ├── assessment.prisma
-│       ├── auditlog.prisma
-│       ├── candidate.prisma
-│       ├── enums.prisma
-│       ├── payment.prisma
-│       ├── problem.prisma
-│       ├── recruiter.prisma
-│       ├── schema.prisma
-│       ├── submission.prisma
-│       └── user.prisma
+│   ├── migrations/                  # Database migration history
+│   └── schema/                      # Modular Prisma schema definitions
+│       ├── schema.prisma            # Root generator & datasource
+│       ├── enums.prisma             # Enums: UserRole, ProblemType, etc.
+│       ├── user.prisma              # User model
+│       ├── recruiter.prisma         # RecruiterProfile model
+│       ├── candidate.prisma         # CandidateProfile model
+│       ├── problem.prisma           # Problem model
+│       ├── assessment.prisma        # Assessment & AssessmentCandidate models
+│       ├── submission.prisma        # Candidate Submission model
+│       ├── payment.prisma           # Payment model
+│       └── auditlog.prisma          # AuditLog model
 ├── src/
 │   ├── app/
-│   │   ├── config/
-│   │   ├── constants/
-│   │   ├── errors/
-│   │   ├── lib/
-│   │   ├── middleware/
-│   │   ├── modules/
-│   │   ├── routes/
-│   │   ├── utils/
-│   │   └── generated/
-│   ├── app.ts
-│   └── server.ts
-├── package.json
-├── tsconfig.json
-├── prisma-next.md
-├── prisma7.config.ts
-├── README.md
-└── .env
+│   │   ├── config/                  # Environment variable configuration
+│   │   ├── constants/               # Pagination & shared constants
+│   │   ├── errors/                  # Custom ApiError, Zod & Prisma error handlers
+│   │   ├── lib/                     # Prisma client initialization with pg adapter
+│   │   ├── middleware/              # Auth, validation, rate limiting, error handlers
+│   │   ├── modules/                 # Domain business modules
+│   │   │   ├── admin/               # Admin routes, controller, service
+│   │   │   ├── assessment/          # Assessment authoring & invitation
+│   │   │   ├── attempt/             # Candidate assessment attempt & evaluation
+│   │   │   ├── auth/                # Registration, login, Google auth, tokens
+│   │   │   ├── payment/             # Stripe checkout, webhook, credit allocation
+│   │   │   ├── problem/             # Problem creation, search, retrieval
+│   │   │   └── user/                # Profile management
+│   │   ├── routes/                  # Central API router aggregator (/api/v1)
+│   │   └── utils/                   # Code evaluator, JWT, seed, audit logger
+│   ├── generated/                   # Prisma Client generated artifacts
+│   ├── app.ts                       # Express application bootstrap
+│   └── server.ts                    # HTTP server startup & graceful shutdown
+├── prisma7.config.ts                # Prisma ORM v7 configuration file
+├── tsup.config.ts / package.json    # Build configuration & scripts
+└── .env                             # Environment configuration
 ```
 
-Key source folders:
-
-- `src/app/config` – runtime configuration and env loading
-- `src/app/middleware` – auth, validation, global error, rate limiting, not-found middleware
-- `src/app/modules` – domain-specific controllers, services, routes, and validation
-- `src/app/utils` – JWT helpers, audit logger, response helper, code evaluator, seed script
-- `src/app/lib/prisma.ts` – Prisma client initialization
-
 ---
 
-## Prerequisites
+## Environment Variables
 
-Before running this project, ensure you have:
-
-- Node.js 18+ or 20+
-- npm
-- PostgreSQL database server
-- Access to a Stripe account if you want real payment session creation
-- Optional: a Google OAuth client ID for social login
-
----
-
-## Environment Configuration
-
-Create a `.env` file in the project root with the following values:
+Create a `.env` file in the project root based on the following template:
 
 ```env
+# Server Runtime
 NODE_ENV=development
 PORT=5000
-DATABASE_URL="postgresql://postgres:your_password@localhost:5432/devjudge_db"
 
+# PostgreSQL Connection String (Prisma v7 requires pg adapter)
+DATABASE_URL="postgresql://postgres:your_password@localhost:5432/devjudge_db?sslmode=prefer"
+
+# Security & Password Hashing
 BCRYPT_SALT_ROUNDS=12
 
-JWT_SECRET="super-secret-access-token-key"
+# JWT Authentication
+JWT_SECRET="super-secret-jwt-access-token-key"
 JWT_EXPIRES_IN="7d"
-JWT_REFRESH_SECRET="super-secret-refresh-token-key"
+JWT_REFRESH_SECRET="super-secret-jwt-refresh-token-key"
 JWT_REFRESH_EXPIRES_IN="30d"
 
-GOOGLE_CLIENT_ID="your-google-client-id"
+# Google Social Sign-In (OAuth Client ID)
+GOOGLE_CLIENT_ID="your-google-oauth-client-id.apps.googleusercontent.com"
 
-STRIPE_SECRET_KEY="sk_test_...or_sk_live_..."
+# Stripe Payments & Webhooks
+STRIPE_SECRET_KEY="sk_test_..."
 STRIPE_WEBHOOK_SECRET="whsec_..."
 CLIENT_URL="http://localhost:3000"
 ```
 
-Notes:
-
-- `DATABASE_URL` is required for Prisma and PostgreSQL connectivity.
-- `JWT_*` values should be changed for production environments.
-- `STRIPE_*` values are optional for local demo flows; payment creation falls back to mock logic when Stripe keys are not configured properly.
-
 ---
 
-## Installation and Setup
+## Getting Started
+
+### Prerequisites
+
+- **Node.js**: `v20.x` or higher
+- **PostgreSQL**: `v15.x` or higher
+- **npm** or **pnpm** / **yarn**
+
+### Installation
+
+Clone the repository and install dependencies:
 
 ```bash
+git clone <repository-url>
+cd assignment-6
 npm install
 ```
 
-If Prisma client artifacts are not generated yet, run:
+### Database Setup & Migration
+
+Generate the Prisma client artifacts:
 
 ```bash
 npx prisma generate
 ```
 
----
-
-## Database Setup
-
-This project expects PostgreSQL. After setting `DATABASE_URL`, initialize the database schema:
+Run migrations to apply the schema to your PostgreSQL database:
 
 ```bash
 npx prisma migrate dev --name init
 ```
 
-If you want to reinitialize the schema from scratch in a development environment:
+*(Optional)* If you ever need to reset and reapply migrations in development:
 
 ```bash
 npx prisma migrate reset
 ```
 
-The Prisma schema is split across several files in `prisma/schema/` and consolidated by Prisma for the app runtime.
+### Running the App
 
----
-
-## Running the Application
-
-Development mode:
+Start in **development** mode with hot reload:
 
 ```bash
 npm run dev
 ```
 
-Production build:
+The server will automatically bootstrap, execute initial database seeds if empty, and listen at:
+
+```text
+http://localhost:5000
+```
+
+Verify system health:
+
+```bash
+curl http://localhost:5000/
+```
+
+**Production Build**:
 
 ```bash
 npm run build
 npm start
 ```
 
-The app starts on `PORT` (default: `5000`) and exposes the API at:
+---
 
-```text
-http://localhost:5000
-```
+## Pre-Seeded Demo Accounts
 
-Root health endpoint:
+When the application boots for the first time, `src/app/utils/seed.ts` automatically provisions demo accounts, problem challenges, and a published assessment:
 
-```http
-GET /
-```
+| Role | Email | Password | Initial State / Credits |
+| :--- | :--- | :--- | :--- |
+| **System Admin** | `admin@devjudge.com` | `Admin@123456` | Full platform access |
+| **Recruiter** | `recruiter@techcorp.com` | `Recruiter@123456` | 50 Candidate Invite Credits, TechCorp Solutions Profile |
+| **Candidate** | `candidate@devjudge.com` | `Candidate@123456` | Senior Full Stack Developer profile |
 
-Example response:
+---
+
+## API Reference
+
+All endpoints are mounted under `/api/v1`. Standard API responses follow a uniform JSON structure:
 
 ```json
 {
+  "statusCode": 200,
   "success": true,
-  "message": "Welcome to DevJudge API - Developer Assessment & Coding Platform",
-  "version": "1.0.0",
-  "documentation": "/api/v1/docs",
-  "timestamp": "2026-09-08T00:00:00.000Z"
-}
-```
-
-> Note: the `documentation` field points to a route that is referenced by the app, but no dedicated docs endpoint is implemented in the current codebase.
-
----
-
-## Available Scripts
-
-```json
-{
-  "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/src/server.js",
-    "format:check": "npx @biomejs/biome format ./src",
-    "format:fix": "npx @biomejs/biome format --write ./src",
-    "lint:check": "npx @biomejs/biome lint ./src",
-    "lint:fix": "npx @biomejs/biome lint --write ./src",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  }
+  "message": "Operation completed successfully!",
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 45,
+    "totalPage": 5
+  },
+  "data": { ... }
 }
 ```
 
 ---
 
-## Seeded Demo Accounts
+### 1. Authentication Module (`/api/v1/auth`)
 
-The app includes seeding logic via `src/app/utils/seed.ts` and runs automatically on startup. It creates demo accounts for the platform:
-
-### Admin
-
-- Email: `admin@devjudge.com`
-- Password: `Admin@123456`
-
-### Recruiter
-
-- Email: `recruiter@techcorp.com`
-- Password: `Recruiter@123456`
-
-### Candidate
-
-- Email: `candidate@devjudge.com`
-- Password: `Candidate@123456`
-
-Seed data also creates demo problems, a published assessment, and a sample completed candidate submission.
-
----
-
-## Core Domain Models
-
-### User
-
-Represents a platform account and includes:
-
-- `id`
-- `name`
-- `email`
-- `password`
-- `role`
-- `status`
-- `avatar`
-- `googleId`
-- `isDeleted`
-- `createdAt`, `updatedAt`
-
-Roles:
-
-- `ADMIN`
-- `RECRUITER`
-- `CANDIDATE`
-
-Statuses:
-
-- `ACTIVE`
-- `BLOCKED`
-
-### Problem
-
-Stores coding, MCQ, or single-choice problems.
-
-Fields include:
-
-- `title`
-- `slug`
-- `description`
-- `difficulty`
-- `problemType`
-- `creatorId`
-- `points`
-- `timeLimitSeconds`
-- `starterCode`
-- `mcqOptions`
-- `correctAnswers`
-- `testCases`
-
-### Assessment
-
-Represents a recruiter-generated evaluation session.
-
-Fields include:
-
-- `title`
-- `description`
-- `recruiterId`
-- `durationMinutes`
-- `totalMarks`
-- `passingMarks`
-- `scheduleStart`, `scheduleEnd`
-- `status`
-
-### AssessmentCandidate
-
-Tracks candidate invitations and progress for each assessment.
-
-Tracks:
-
-- invitation token
-- status (`INVITED`, `IN_PROGRESS`, `COMPLETED`, `EXPIRED`)
-- candidate email
-- score and pass/fail state
-- started/submitted timestamps
-
-### Submission
-
-Stores candidate answers for each assessment problem.
-
-Includes:
-
-- `submittedCode`
-- `selectedOptions`
-- `executionResult`
-- `scoreAwarded`
-- `status`
-- `executionTimeMs`
-
-### Payment
-
-Tracks Stripe-related or mock payment events.
-
-Includes:
-
-- `userId`
-- `stripeSessionId`
-- `stripePaymentIntentId`
-- `amount`
-- `currency`
-- `creditsPurchased`
-- `planName`
-- `status`
-
-### RecruiterProfile / CandidateProfile
-
-Profile extensions for recruiter data and candidate data like company info, skills, and portfolio links.
-
----
-
-## API Endpoints
-
-All routes are mounted under the base path:
-
-```text
-/api/v1
-```
-
-### Authentication Routes
-
-#### Register a new user
-
-```http
-POST /api/v1/auth/register
-```
-
-Body example:
-
+#### Register User
+`POST /api/v1/auth/register`
+- **Rate Limit**: 10 req / 15 min
+- **Request Body**:
 ```json
 {
-  "name": "Jane Doe",
-  "email": "jane@example.com",
-  "password": "secret123",
+  "name": "Alex Johnson",
+  "email": "alex@example.com",
+  "password": "Password@123",
+  "role": "CANDIDATE",
+  "headline": "Full Stack Engineer",
+  "skills": ["TypeScript", "Node.js", "React"]
+}
+```
+*(If `role` is `RECRUITER`, pass `companyName` and optional `companyWebsite`)*
+
+#### Login
+`POST /api/v1/auth/login`
+- **Rate Limit**: 10 req / 15 min
+- **Request Body**:
+```json
+{
+  "email": "alex@example.com",
+  "password": "Password@123"
+}
+```
+- **Response**: Returns `accessToken`, `refreshToken`, user object, and sets secure HTTP-only cookies.
+
+#### Google Social Login
+`POST /api/v1/auth/google`
+- **Request Body**:
+```json
+{
+  "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6...",
   "role": "CANDIDATE"
 }
 ```
 
-#### Login
-
-```http
-POST /api/v1/auth/login
-```
-
-#### Google login
-
-```http
-POST /api/v1/auth/google
-```
-
-#### Refresh token
-
-```http
-POST /api/v1/auth/refresh-token
-```
+#### Refresh Access Token
+`POST /api/v1/auth/refresh-token`
+- **Request Body / Cookie**: `{ "refreshToken": "<token>" }`
 
 #### Logout
+`POST /api/v1/auth/logout`
+- Clears `accessToken` and `refreshToken` cookies.
 
-```http
-POST /api/v1/auth/logout
-```
+---
 
-### User Routes
+### 2. User Module (`/api/v1/users`)
 
-```http
-GET /api/v1/users/me
-PATCH /api/v1/users/me
-```
+#### Get Current Profile
+`GET /api/v1/users/me`
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**: Returns authenticated user profile, associated role profile, and activity counts.
 
-### Problem Routes
-
-```http
-POST /api/v1/problems/
-GET /api/v1/problems/
-GET /api/v1/problems/:id
-PATCH /api/v1/problems/:id
-DELETE /api/v1/problems/:id
-```
-
-### Assessment Routes
-
-```http
-POST /api/v1/assessments/
-GET /api/v1/assessments/
-GET /api/v1/assessments/:id
-PATCH /api/v1/assessments/:id
-DELETE /api/v1/assessments/:id
-POST /api/v1/assessments/:id/invite
-```
-
-### Candidate Attempt Routes
-
-```http
-GET /api/v1/attempts/my-assessments
-POST /api/v1/attempts/:assessmentId/start
-POST /api/v1/attempts/:assessmentId/submit-problem
-POST /api/v1/attempts/:assessmentId/finish
-GET /api/v1/attempts/:assessmentId/result
-```
-
-### Payment Routes
-
-```http
-POST /api/v1/payments/create-checkout-session
-POST /api/v1/payments/webhook
-GET /api/v1/payments/my-history
-```
-
-### Admin Routes
-
-```http
-GET /api/v1/admin/users
-PATCH /api/v1/admin/users/:id/status
-GET /api/v1/admin/dashboard-stats
-GET /api/v1/admin/audit-logs
+#### Update Current Profile
+`PATCH /api/v1/users/me`
+- **Headers**: `Authorization: Bearer <token>`
+- **Request Body**:
+```json
+{
+  "name": "Alex Johnson",
+  "avatar": "https://avatar.example.com/alex.png",
+  "headline": "Lead Backend Architect",
+  "skills": ["Node.js", "PostgreSQL", "Go"]
+}
 ```
 
 ---
 
-## Authentication and Authorization
+### 3. Problem Management Module (`/api/v1/problems`)
 
-The app uses JWT tokens for authorization. Access tokens are typically sent in the `Authorization` header as a Bearer token, or they can be stored as cookies under `accessToken` and `refreshToken`.
-
-The auth middleware checks:
-
-- token presence
-- token validity
-- whether the user still exists
-- whether the user is soft deleted
-- whether the user is blocked
-- whether the user has the required role
-
-Role-based protections are enforced by passing allowed roles to the middleware, for example:
-
-```ts
-auth(UserRole.ADMIN, UserRole.RECRUITER);
+#### Create Problem
+`POST /api/v1/problems`
+- **Access**: `ADMIN`, `RECRUITER`
+- **Request Body**:
+```json
+{
+  "title": "Two Sum",
+  "slug": "two-sum-problem",
+  "description": "Given an array of integers nums and target, return indices...",
+  "difficulty": "EASY",
+  "problemType": "CODING",
+  "points": 25,
+  "timeLimitSeconds": 300,
+  "isPublic": true,
+  "starterCode": {
+    "javascript": "function twoSum(nums, target) {\n  // Solution\n}"
+  },
+  "testCases": [
+    { "input": "[2,7,11,15], 9", "expectedOutput": "[0,1]", "isHidden": false },
+    { "input": "[3,3], 6", "expectedOutput": "[0,1]", "isHidden": true }
+  ]
+}
 ```
 
-Roles are defined in Prisma enums from `UserRole`.
+#### Get All Problems
+`GET /api/v1/problems`
+- **Query Params**: `searchTerm`, `difficulty`, `problemType`, `isPublic`, `page`, `limit`, `sortBy`, `sortOrder`
+
+#### Get Problem by ID
+`GET /api/v1/problems/:id`
+- **Access**: Public / Authenticated. Candidates automatically receive sanitized test cases with `correctAnswers` and hidden test cases removed.
+
+#### Update Problem
+`PATCH /api/v1/problems/:id`
+- **Access**: `ADMIN`, `RECRUITER` (Owner only)
+
+#### Soft Delete Problem
+`DELETE /api/v1/problems/:id`
+- **Access**: `ADMIN`, `RECRUITER` (Owner only)
 
 ---
 
-## Payment Flow
+### 4. Assessment Module (`/api/v1/assessments`)
 
-The payment module is built around recruiter credit packs. Recruiters can purchase bundles of candidate invite credits, and the app stores a pending payment record before fulfillment.
+#### Create Assessment
+`POST /api/v1/assessments`
+- **Access**: `ADMIN`, `RECRUITER`
+- **Request Body**:
+```json
+{
+  "title": "Senior Backend Screening",
+  "description": "Comprehensive screening on algorithms and indexing.",
+  "durationMinutes": 60,
+  "totalMarks": 100,
+  "passingMarks": 65,
+  "scheduleStart": "2026-10-15T09:00:00.000Z",
+  "scheduleEnd": "2026-10-20T18:00:00.000Z",
+  "status": "PUBLISHED",
+  "problemIds": [
+    { "problemId": "problem_cuid_1", "orderIndex": 1, "customPoints": 35 },
+    { "problemId": "problem_cuid_2", "orderIndex": 2, "customPoints": 30 }
+  ]
+}
+```
 
-### Credit plans
+#### List Assessments
+`GET /api/v1/assessments`
+- **Access**: `ADMIN` (sees all), `RECRUITER` (sees own)
+- **Query Params**: `searchTerm`, `status`, `page`, `limit`, `sortBy`, `sortOrder`
 
-Defined in `src/app/modules/payment/payment.interface.ts`:
+#### Get Assessment by ID
+`GET /api/v1/assessments/:id`
+- **Access**: `ADMIN`, `RECRUITER`, `CANDIDATE`. Candidates receive sanitized problems and cannot view other candidates' records.
 
-- `STARTER_PACK`: 25 credits, $29
-- `PRO_PACK`: 75 credits, $79
-- `ENTERPRISE_PACK`: 250 credits, $199
+#### Update Assessment
+`PATCH /api/v1/assessments/:id`
+- **Access**: `ADMIN`, `RECRUITER` (Owner only)
 
-### Payment behavior
+#### Soft Delete Assessment
+`DELETE /api/v1/assessments/:id`
+- **Access**: `ADMIN`, `RECRUITER` (Owner only)
 
-- `POST /api/v1/payments/create-checkout-session` creates a Stripe checkout session or a mock fallback session
-- `POST /api/v1/payments/webhook` processes payment completion events
-- On successful completion, recruiter credits are incremented and a payment record is marked as completed
-
-This design allows local development without a fully configured Stripe secret, while still supporting production Stripe workflows.
+#### Invite Candidate
+`POST /api/v1/assessments/:id/invite`
+- **Access**: `RECRUITER`
+- **Deduction**: Decrements 1 credit from the recruiter's wallet.
+- **Request Body**:
+```json
+{
+  "email": "candidate@example.com"
+}
+```
 
 ---
 
-## Security and Middleware
+### 5. Candidate Attempt & Evaluation Module (`/api/v1/attempts`)
 
-The server config includes:
+#### List My Assessments
+`GET /api/v1/attempts/my-assessments`
+- **Access**: `CANDIDATE`
+- Returns invitations and assessments assigned to the logged-in candidate.
 
-- `helmet()` for secure HTTP headers
-- `cors()` with allowed frontend origins
-- `cookie-parser()` for token cookies
-- JSON and URL-encoded body parsing
-- global rate limiting
-- morgan logging in development mode
-- centralized global error handler
-- not-found fallback middleware
-- validation using Zod
+#### Start Assessment Attempt
+`POST /api/v1/attempts/:assessmentId/start`
+- **Access**: `CANDIDATE`
+- Enforces schedule window (`scheduleStart`, `scheduleEnd`), transitions attempt status to `IN_PROGRESS`, and starts timer.
 
-These safeguards aid both security and maintainability.
+#### Test Execution Sandbox (Run Code)
+`POST /api/v1/attempts/:assessmentId/run-code`
+- **Access**: `CANDIDATE`
+- Executes code against visible test cases without persisting or affecting candidate score.
+- **Request Body**:
+```json
+{
+  "problemId": "problem_cuid_1",
+  "submittedCode": "function twoSum(nums, target) { return [0, 1]; }"
+}
+```
+- **Response**:
+```json
+{
+  "problemId": "problem_cuid_1",
+  "scoreAwarded": 25,
+  "maxPoints": 25,
+  "status": "PASSED",
+  "testResults": [
+    {
+      "passed": true,
+      "input": "[2,7,11,15], 9",
+      "expectedOutput": "[0,1]",
+      "actualOutput": "[0,1]",
+      "isHidden": false
+    }
+  ],
+  "executionTimeMs": 85
+}
+```
+
+#### Submit Problem Solution
+`POST /api/v1/attempts/:assessmentId/submit-problem`
+- **Access**: `CANDIDATE`
+- Evaluates code against **all** test cases (including hidden), saves/updates `Submission` record in the database, and records awarded score.
+- **Request Body**:
+```json
+{
+  "problemId": "problem_cuid_1",
+  "submittedCode": "function twoSum(nums, target) { ... }"
+}
+```
+*(For MCQ/Single Choice, send `"selectedOptions": ["A", "C"]`)*
+
+#### Finish Assessment
+`POST /api/v1/attempts/:assessmentId/finish`
+- **Access**: `CANDIDATE`
+- Aggregates all submission scores, compares against `passingMarks`, marks status as `COMPLETED`, sets `submittedAt`, and stores `isPassed`.
+
+#### Get Assessment Result
+`GET /api/v1/attempts/:assessmentId/result`
+- **Access**: `CANDIDATE`, `RECRUITER`, `ADMIN`
+- Returns full candidate score breakdown, individual problem submissions, and pass/fail status.
 
 ---
 
-## Known Notes and Limitations
+### 6. Payment & Recruiter Credits Module (`/api/v1/payments`)
 
-This project is a strong backend foundation, but it has a few important implementation realities to be aware of:
+#### Create Stripe Checkout Session
+`POST /api/v1/payments/create-checkout-session`
+- **Access**: `RECRUITER`, `ADMIN`
+- **Request Body**:
+```json
+{
+  "planName": "STARTER_PACK"
+}
+```
+- **Available Plans**:
+  - `STARTER_PACK`: 25 Credits — \$29
+  - `PRO_PACK`: 75 Credits — \$79
+  - `ENTERPRISE_PACK`: 250 Credits — \$199
+- **Response**: Returns `checkoutUrl` to redirect recruiter to Stripe Checkout.
 
-1. The code evaluator is intentionally simplified and does not execute arbitrary user code in a sandboxed environment.
-   - It checks for obvious syntax/logic conditions and awards partial or full points based on provided test data.
-   - It is suitable for demo and training workflows, not production-grade code execution.
+#### Verify Session (Client Return)
+`POST /api/v1/payments/verify-session`
+- **Access**: `RECRUITER`, `ADMIN`
+- **Request Body**: `{ "sessionId": "cs_test_..." }`
+- Verifies session with Stripe, marks payment as `COMPLETED`, and increments recruiter credits.
 
-2. Payment checkout falls back to mock behavior when real Stripe credentials are not configured.
-   - This is helpful for local development but should not be treated as production-grade handling on its own.
+#### Stripe Webhook
+`POST /api/v1/payments/webhook`
+- **Access**: Stripe signature-verified endpoint (`Stripe-Signature` header).
+- Automatically fulfills credits on `checkout.session.completed`.
 
-3. The API includes a root endpoint documentation hint, but no dedicated Swagger/OpenAPI docs are implemented in the current project.
+#### Payment History
+`GET /api/v1/payments/my-history`
+- **Access**: `RECRUITER` (sees own payments), `ADMIN` (sees all payments).
 
-4. The project is a backend service only; it does not include a frontend application by itself.
+---
+
+### 7. Admin Governance Module (`/api/v1/admin`)
+
+#### List Users
+`GET /api/v1/admin/users`
+- **Access**: `ADMIN`
+- **Query Params**: `searchTerm`, `role`, `status`, `page`, `limit`, `sortBy`, `sortOrder`
+
+#### Update User Status / Role
+`PATCH /api/v1/admin/users/:id/status`
+- **Access**: `ADMIN`
+- **Request Body**:
+```json
+{
+  "status": "BLOCKED",
+  "role": "RECRUITER"
+}
+```
+*(Prevents an admin from demoting their own admin account)*
+
+#### Dashboard Analytics
+`GET /api/v1/admin/dashboard-stats`
+- **Access**: `ADMIN`
+- **Response**:
+```json
+{
+  "overview": {
+    "totalUsers": 120,
+    "totalCandidates": 95,
+    "totalRecruiters": 22,
+    "totalProblems": 40,
+    "totalAssessments": 15,
+    "totalAttempts": 84,
+    "totalPassedAttempts": 58,
+    "passRate": "69.05%"
+  },
+  "revenue": {
+    "totalRevenueUSD": 3290,
+    "successfulTransactions": 42
+  }
+}
+```
+
+#### Audit Logs
+`GET /api/v1/admin/audit-logs`
+- **Access**: `ADMIN`
+- **Query Params**: `action`, `entityType`, `page`, `limit`, `sortBy`, `sortOrder`
+
+---
+
+## Security & Architectural Highlights
+
+- **Prisma ORM v7 with `@prisma/adapter-pg`**: Uses PostgreSQL connection pooling via the official modern driver adapter.
+- **Rate Limiting**:
+  - Global limiter: 100 requests per 15-minute window per IP.
+  - Auth limiter: 10 requests per 15-minute window for auth routes (`/register`, `/login`, `/google`).
+- **Child Process Sandbox**: Code execution runs with a 3-second hard timeout, isolated execution buffer, and memory cap to prevent DOS vectors.
+- **Audit Logging**: Sensitive mutations (`CREATE_ASSESSMENT`, `UPDATE_USER_STATUS_OR_ROLE`, `FINISH_ASSESSMENT`, etc.) create immutable audit log rows recording actor ID, IP address, and payload diffs.
+- **Soft Deletion**: Problems and assessments feature non-destructive soft deletion (`isDeleted`, `deletedAt`).
+- **Dual Authentication Modes**: Seamlessly supports `Authorization: Bearer <token>` headers as well as HTTP-only cookies (`accessToken`, `refreshToken`) for browser clients.
+
+---
+
+## Available NPM Scripts
+
+| Script | Command | Description |
+| :--- | :--- | :--- |
+| `npm run dev` | `tsx watch src/server.ts` | Runs the server in development mode with live reload |
+| `npm run build` | `tsup` | Compiles the TypeScript application into production `dist/` |
+| `npm start` | `node dist/src/server.js` | Runs the compiled production build |
+| `npm run lint:check` | `npx @biomejs/biome lint ./src` | Runs Biome code linter across `src/` |
+| `npm run lint:fix` | `npx @biomejs/biome lint --write ./src` | Automatically resolves fixable lint warnings |
+| `npm run format:check` | `npx @biomejs/biome format ./src` | Checks formatting compliance with Biome |
+| `npm run format:fix` | `npx @biomejs/biome format --write ./src` | Formats codebase using Biome formatter |
+
+---
+
+## Troubleshooting & FAQ
+
+#### 1. Why does `npx prisma migrate dev` fail with driver adapter errors?
+This project uses **Prisma ORM v7**. Ensure your `prisma7.config.ts` points to `prisma/schema` and your `DATABASE_URL` is set in `.env`. Run `npx prisma generate` after any schema edits.
+
+#### 2. What happens if Stripe keys are not set?
+Payment checkout automatically triggers local fallback mode: simulated session IDs (`cs_test_...`) and success redirects are returned, allowing development without a paid Stripe account.
+
+#### 3. How does the code runner handle input formats?
+Solutions can either read from standard input (`fs.readFileSync(0, "utf-8")`) or export/define a `solution(rawInput)` function. Both styles are supported.
 
 ---
 
 ## License
 
-This project is licensed under the ISC license.
-
----
-
-## Summary
-
-DevJudge API provides a comprehensive recruitment assessment platform backend with authentication, role-based access, candidate invite management, problem and assessment authoring, submission evaluation, audit logs, and recruiter payments. It is well suited as a starter backend for assessment-driven hiring systems, coding challenge portals, or internal technical screening platforms.
-
-If you are developing around this codebase, the most important starting points are:
-
-- `src/app.ts` – app bootstrap
-- `src/server.ts` – server startup and graceful shutdown
-- `src/app/routes/index.ts` – API route registration
-- `prisma/schema/` – data model definitions
-- `src/app/modules/*` – business logic domains
-- `src/app/utils/seed.ts` – demo platform content
-
----
-
-## Quick Start Example
-
-```bash
-npm install
-# create a .env file with your PostgreSQL, JWT, and Stripe values
-npx prisma migrate dev
-npm run dev
-```
-
-Then open:
-
-```text
-http://localhost:5000/
-```
-
-and start interacting with the API under `/api/v1`.
+This project is licensed under the [ISC License](https://opensource.org/licenses/ISC).
