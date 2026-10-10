@@ -40,8 +40,7 @@ const createAssessment = async (userId: string, payload: ICreateAssessmentReques
     }, 0);
   }
 
-  let computedPassingMarks =
-    payload.passingMarks || (payload as any).passingScore || 70;
+  let computedPassingMarks = payload.passingMarks || (payload as any).passingScore || 70;
   if (computedPassingMarks > computedTotalMarks) {
     computedPassingMarks = Math.round((computedPassingMarks / 100) * computedTotalMarks);
   }
@@ -145,6 +144,15 @@ const getAllAssessments = async (
             },
           },
         },
+        candidates: {
+          select: {
+            id: true,
+            status: true,
+            totalScore: true,
+            isPassed: true,
+            submittedAt: true,
+          },
+        },
         _count: {
           select: {
             problems: true,
@@ -158,6 +166,11 @@ const getAllAssessments = async (
 
   const totalPage = Math.ceil(total / limit);
 
+  const formattedData = data.map((item: any) => ({
+    ...item,
+    candidateAssessments: item.candidates,
+  }));
+
   return {
     meta: {
       page,
@@ -165,7 +178,7 @@ const getAllAssessments = async (
       total,
       totalPage,
     },
-    data,
+    data: formattedData,
   };
 };
 
@@ -249,7 +262,10 @@ const getAssessmentById = async (id: string, userId: string, userRole: UserRole)
     };
   }
 
-  return assessment;
+  return {
+    ...assessment,
+    candidateAssessments: assessment.candidates,
+  };
 };
 
 const updateAssessment = async (
