@@ -9,10 +9,12 @@ interface ICookieData {
 }
 
 export default function handleCookies({ type, res, accessToken, refreshToken }: ICookieData) {
+  const isProduction = config.env === "production";
   const cookieOptions = {
-    secure: config.env === "production",
+    secure: isProduction,
     httpOnly: true,
-    sameSite: config.env === "production" ? ("lax" as const) : ("lax" as const),
+    sameSite: isProduction ? ("none" as const) : ("lax" as const),
+    partitioned: isProduction,
     path: "/",
   };
 

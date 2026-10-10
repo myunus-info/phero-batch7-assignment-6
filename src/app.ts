@@ -13,9 +13,26 @@ const app: Application = express();
 
 // Security Middlewares
 app.use(helmet());
+const allowedOrigins = [
+  config.stripe.client_url,
+  "https://devjudgelivecoding.vercel.app",
+  "http://localhost:3000",
+  "http://localhost:3001",
+];
+
 app.use(
   cors({
-    origin: [config.stripe.client_url, "https://devjudgelivecoding.vercel.app"],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith(".vercel.app") ||
+        origin.startsWith("http://localhost:")
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
     credentials: true,
   }),
 );
