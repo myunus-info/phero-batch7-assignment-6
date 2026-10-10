@@ -241,7 +241,7 @@ const submitProblemSolution = async (
     },
   });
 
-  let submission;
+  let submission: any;
   if (existingSubmission) {
     submission = await prisma.submission.update({
       where: { id: existingSubmission.id },
@@ -293,77 +293,6 @@ const submitProblemSolution = async (
   };
 };
 
-const runProblemCode = async (
-  assessmentId: string,
-  candidateId: string,
-  candidateEmail: string,
-  payload: ISubmitProblemSolutionRequest,
-) => {
-  const candidateAssessment = await prisma.assessmentCandidate.findFirst({
-    where: {
-      assessmentId,
-      OR: [{ candidateId }, { candidateEmail: candidateEmail.toLowerCase() }],
-    },
-  });
-
-  if (!candidateAssessment) {
-    throw new ApiError(httpStatus.NOT_FOUND, "Assessment session not found.");
-  }
-
-  if (candidateAssessment.status === CandidateAssessmentStatus.COMPLETED) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "Assessment has already been completed.");
-  }
-
-  const assessmentProblem = await prisma.assessmentProblem.findUnique({
-    where: {
-      assessmentId_problemId: {
-        assessmentId,
-        problemId: payload.problemId,
-      },
-    },
-    include: {
-      problem: true,
-    },
-  });
-
-  if (!assessmentProblem) {
-    throw new ApiError(httpStatus.NOT_FOUND, "Problem does not belong to this assessment.");
-  }
-
-  const problem = assessmentProblem.problem;
-  const problemPoints = assessmentProblem.customPoints || problem.points;
-
-  const finalSubmittedCode = payload.submittedCode || payload.code || "";
-  const finalSelectedOptions =
-    payload.selectedOptions || (payload.selectedOptionId ? [payload.selectedOptionId] : undefined);
-
-  // Safe evaluation against problem's test cases without persisting submission record
-  const evalResult = evaluateProblemSolution(
-    problem.problemType,
-    problemPoints,
-    problem.correctAnswers,
-    problem.testCases,
-    {
-      submittedCode: finalSubmittedCode,
-      selectedOptions: finalSelectedOptions,
-    },
-  );
-
-  // Return only visible test case results so hidden test cases remain secret
-  const visibleTestResults = Array.isArray(evalResult.testResults)
-    ? evalResult.testResults.filter(tr => !tr.isHidden)
-    : evalResult.testResults;
-
-  return {
-    problemId: payload.problemId,
-    scoreAwarded: evalResult.scoreAwarded,
-    maxPoints: problemPoints,
-    status: evalResult.status,
-    testResults: visibleTestResults,
-    executionTimeMs: evalResult.executionTimeMs,
-  };
-};
-
 const finishAssessment = async (
   assessmentId: string,
   candidateId: string,
@@ -392,7 +321,14 @@ const finishAssessment = async (
   // Calculate total score from all submissions
   const totalScore = candidateAssessment.submissions.reduce((sum, sub) => sum + sub.scoreAwarded, 0);
 
-  const isPassed = totalScore >= candidateAssessment.assessment.passingMarks;
+  const totalMarks = candidateAssessment.assessment.totalMarks || 100;
+  const rawPassingMarks = candidateAssessment.assessment.passingMarks;
+  const effectivePassingMarks =
+    rawPassingMarks > totalMarks
+      ? Math.max(1, Math.round((rawPassingMarks / 100) * totalMarks))
+      : rawPassingMarks;
+
+  const isPassed = totalScore >= effectivePassingMarks;
 
   const finishedAttempt = await prisma.assessmentCandidate.update({
     where: { id: candidateAssessment.id },
@@ -476,14 +412,27 @@ const getAssessmentResult = async (assessmentId: string, userId: string, candida
     throw new ApiError(httpStatus.NOT_FOUND, "Assessment result not found.");
   }
 
-  return result;
+  const totalMarks = result.assessment.totalMarks || 100;
+  let passingMarks = result.assessment.passingMarks;
+  if (passingMarks > totalMarks) {
+    passingMarks = Math.max(1, Math.round((passingMarks / 100) * totalMarks));
+  }
+  const isPassed = result.isPassed || (result.totalScore >= passingMarks);
+
+  return {
+    ...result,
+    isPassed,
+    assessment: {
+      ...result.assessment,
+      passingMarks,
+    },
+  };
 };
 
 export const AttemptService = {
   getMyCandidateAssessments,
   startAssessmentAttempt,
   submitProblemSolution,
-  runProblemCode,
   finishAssessment,
   getAssessmentResult,
 };

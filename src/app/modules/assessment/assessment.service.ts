@@ -40,6 +40,13 @@ const createAssessment = async (userId: string, payload: ICreateAssessmentReques
     }, 0);
   }
 
+  let computedPassingMarks =
+    payload.passingMarks || (payload as any).passingScore || 70;
+  if (computedPassingMarks > computedTotalMarks) {
+    computedPassingMarks = Math.round((computedPassingMarks / 100) * computedTotalMarks);
+  }
+  computedPassingMarks = Math.max(1, Math.min(computedPassingMarks, computedTotalMarks));
+
   const result = await prisma.$transaction(async tx => {
     const assessment = await tx.assessment.create({
       data: {
@@ -48,7 +55,7 @@ const createAssessment = async (userId: string, payload: ICreateAssessmentReques
         recruiterId: userId,
         durationMinutes: payload.durationMinutes,
         totalMarks: computedTotalMarks,
-        passingMarks: payload.passingMarks || (payload as any).passingScore || 70,
+        passingMarks: computedPassingMarks,
         scheduleStart: payload.scheduleStart ? new Date(payload.scheduleStart) : null,
         scheduleEnd: payload.scheduleEnd ? new Date(payload.scheduleEnd) : null,
         status: payload.status || AssessmentStatus.PUBLISHED,
@@ -264,14 +271,23 @@ const updateAssessment = async (
     throw new ApiError(403, "Forbidden! You can only update your own assessments.");
   }
 
+  let updatedTotalMarks = payload.totalMarks;
+  let updatedPassingMarks = payload.passingMarks;
+
+  if (updatedPassingMarks && updatedTotalMarks && updatedPassingMarks > updatedTotalMarks) {
+    updatedPassingMarks = Math.max(1, Math.round((updatedPassingMarks / 100) * updatedTotalMarks));
+  } else if (updatedPassingMarks && !updatedTotalMarks && updatedPassingMarks > assessment.totalMarks) {
+    updatedPassingMarks = Math.max(1, Math.round((updatedPassingMarks / 100) * assessment.totalMarks));
+  }
+
   const updatedAssessment = await prisma.assessment.update({
     where: { id },
     data: {
       title: payload.title,
       description: payload.description,
       durationMinutes: payload.durationMinutes,
-      totalMarks: payload.totalMarks,
-      passingMarks: payload.passingMarks,
+      totalMarks: updatedTotalMarks,
+      passingMarks: updatedPassingMarks,
       scheduleStart: payload.scheduleStart ? new Date(payload.scheduleStart) : undefined,
       scheduleEnd: payload.scheduleEnd ? new Date(payload.scheduleEnd) : undefined,
       status: payload.status,

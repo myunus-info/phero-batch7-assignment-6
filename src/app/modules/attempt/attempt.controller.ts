@@ -30,22 +30,6 @@ const startAssessmentAttempt = catchAsync(async (req: Request, res: Response) =>
   });
 });
 
-const runProblemCode = catchAsync(async (req: Request, res: Response) => {
-  const result = await AttemptService.runProblemCode(
-    req.params.assessmentId as string,
-    req.user!.userId,
-    req.user!.email,
-    req.body,
-  );
-
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: "Code executed against test cases successfully!",
-    data: result,
-  });
-});
-
 const submitProblemSolution = catchAsync(async (req: Request, res: Response) => {
   const result = await AttemptService.submitProblemSolution(
     req.params.assessmentId as string,
@@ -97,7 +81,6 @@ const getAssessmentResult = catchAsync(async (req: Request, res: Response) => {
 export const AttemptController = {
   getMyCandidateAssessments,
   startAssessmentAttempt,
-  runProblemCode,
   submitProblemSolution,
   finishAssessment,
   getAssessmentResult,

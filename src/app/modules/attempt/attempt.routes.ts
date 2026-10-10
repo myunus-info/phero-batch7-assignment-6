@@ -18,13 +18,6 @@ router.post(
   AttemptController.submitProblemSolution,
 );
 
-router.post(
-  "/:assessmentId/run-code",
-  auth(UserRole.CANDIDATE),
-  validateRequest(AttemptValidation.submitProblemSolutionValidationSchema as any),
-  AttemptController.runProblemCode,
-);
-
 router.post("/:assessmentId/finish", auth(UserRole.CANDIDATE), AttemptController.finishAssessment);
 
 router.get(
