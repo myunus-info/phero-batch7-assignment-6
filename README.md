@@ -51,7 +51,7 @@ The system employs a layered, domain-driven Express + TypeScript architecture. C
 ```mermaid
 flowchart TD
     Client["Client Applications\n(Web / Assessment Portal / Admin UI)"]
-    
+
     subgraph Gateway ["Express 5 Application Gateway"]
         Security["Helmet & CORS & Cookie Parser"]
         RateLimit["Rate Limiting\n(Global & Auth Limiter)"]
@@ -88,7 +88,7 @@ flowchart TD
     ZodValidation --> AdminModule
 
     AttemptModule --> Runner
-    
+
     AuthModule --> PrismaClient
     ProblemModule --> PrismaClient
     AssessmentModule --> PrismaClient
@@ -122,7 +122,6 @@ flowchart TD
   - Time Limit Exceeded (TLE) protection (3000ms default per test case).
   - Normalization of carriage returns (`\r\n` vs `\n`) and trailing whitespace for resilient assertion checks.
 - **Live Run vs. Final Submit**:
-  - `POST /attempts/:id/run-code`: Test execution sandbox returning visible test case feedback without persisting submissions or penalizing attempts.
   - `POST /attempts/:id/submit-problem`: Formal grading against all test cases (both visible and hidden), calculating proportional points and recording database submission state.
   - `POST /attempts/:id/finish`: Automatic overall score aggregation and pass/fail determination.
 - **Recruiter Credit System & Stripe Payments**:
@@ -142,38 +141,38 @@ flowchart TD
 
 The platform enforces strict role-based authorization:
 
-| Resource / Endpoint | CANDIDATE | RECRUITER | ADMIN |
-| :--- | :---: | :---: | :---: |
-| Register / Login / Google Auth / Refresh | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| Profile View & Update (`/users/me`) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| Browse Public Problems (`GET /problems`) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| View Problem Details (Hides Secrets) | :white_check_mark: (Sanitized) | :white_check_mark: (Full) | :white_check_mark: (Full) |
-| Create / Update / Delete Problems | :x: | :white_check_mark: (Own) | :white_check_mark: (All) |
-| Create / Manage Assessments | :x: | :white_check_mark: (Own) | :white_check_mark: (All) |
-| Invite Candidates (Requires Credits) | :x: | :white_check_mark: | :white_check_mark: |
-| Candidate Assessments (`/attempts/my-assessments`) | :white_check_mark: | :x: | :x: |
-| Start / Run / Submit / Finish Attempt | :white_check_mark: | :x: | :x: |
-| View Final Attempt Result | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| Buy Recruiter Credits (Stripe Checkout) | :x: | :white_check_mark: | :white_check_mark: |
-| View Payment History | :x: | :white_check_mark: (Own) | :white_check_mark: (All) |
-| Manage User Statuses & Roles | :x: | :x: | :white_check_mark: |
-| Platform Analytics Dashboard | :x: | :x: | :white_check_mark: |
-| View Audit Logs | :x: | :x: | :white_check_mark: |
+| Resource / Endpoint                                |           CANDIDATE            |         RECRUITER         |           ADMIN           |
+| :------------------------------------------------- | :----------------------------: | :-----------------------: | :-----------------------: |
+| Register / Login / Google Auth / Refresh           |       :white_check_mark:       |    :white_check_mark:     |    :white_check_mark:     |
+| Profile View & Update (`/users/me`)                |       :white_check_mark:       |    :white_check_mark:     |    :white_check_mark:     |
+| Browse Public Problems (`GET /problems`)           |       :white_check_mark:       |    :white_check_mark:     |    :white_check_mark:     |
+| View Problem Details (Hides Secrets)               | :white_check_mark: (Sanitized) | :white_check_mark: (Full) | :white_check_mark: (Full) |
+| Create / Update / Delete Problems                  |              :x:               | :white_check_mark: (Own)  | :white_check_mark: (All)  |
+| Create / Manage Assessments                        |              :x:               | :white_check_mark: (Own)  | :white_check_mark: (All)  |
+| Invite Candidates (Requires Credits)               |              :x:               |    :white_check_mark:     |    :white_check_mark:     |
+| Candidate Assessments (`/attempts/my-assessments`) |       :white_check_mark:       |            :x:            |            :x:            |
+| Start / Run / Submit / Finish Attempt              |       :white_check_mark:       |            :x:            |            :x:            |
+| View Final Attempt Result                          |       :white_check_mark:       |    :white_check_mark:     |    :white_check_mark:     |
+| Buy Recruiter Credits (Stripe Checkout)            |              :x:               |    :white_check_mark:     |    :white_check_mark:     |
+| View Payment History                               |              :x:               | :white_check_mark: (Own)  | :white_check_mark: (All)  |
+| Manage User Statuses & Roles                       |              :x:               |            :x:            |    :white_check_mark:     |
+| Platform Analytics Dashboard                       |              :x:               |            :x:            |    :white_check_mark:     |
+| View Audit Logs                                    |              :x:               |            :x:            |    :white_check_mark:     |
 
 ---
 
 ## Tech Stack & Dependencies
 
-| Layer | Technologies |
-| :--- | :--- |
-| **Runtime & Language** | Node.js (v20+ recommended), TypeScript (v5.x), ES Modules |
-| **Web Framework** | Express.js (v5.2.x) |
-| **Database & ORM** | PostgreSQL, Prisma ORM (v7.10.x) with `@prisma/adapter-pg` driver adapter |
-| **Authentication & Crypto**| JWT (`jsonwebtoken`), `bcryptjs`, `google-auth-library` |
-| **Validation** | Zod (v4.x) |
-| **Payments** | Stripe API (`stripe` v22.x) with Checkout Sessions & Webhooks |
-| **Security & Utilities** | `helmet`, `cors`, `cookie-parser`, `express-rate-limit`, `morgan`, `http-status` |
-| **Bundler & Tooling** | `tsup`, `tsx` (live reloader), Biome (`@biomejs/biome`) for linting & formatting |
+| Layer                       | Technologies                                                                     |
+| :-------------------------- | :------------------------------------------------------------------------------- |
+| **Runtime & Language**      | Node.js (v20+ recommended), TypeScript (v5.x), ES Modules                        |
+| **Web Framework**           | Express.js (v5.2.x)                                                              |
+| **Database & ORM**          | PostgreSQL, Prisma ORM (v7.10.x) with `@prisma/adapter-pg` driver adapter        |
+| **Authentication & Crypto** | JWT (`jsonwebtoken`), `bcryptjs`, `google-auth-library`                          |
+| **Validation**              | Zod (v4.x)                                                                       |
+| **Payments**                | Stripe API (`stripe` v22.x) with Checkout Sessions & Webhooks                    |
+| **Security & Utilities**    | `helmet`, `cors`, `cookie-parser`, `express-rate-limit`, `morgan`, `http-status` |
+| **Bundler & Tooling**       | `tsup`, `tsx` (live reloader), Biome (`@biomejs/biome`) for linting & formatting |
 
 ---
 
@@ -194,7 +193,7 @@ erDiagram
 
     Assessment ||--o{ AssessmentProblem : "contains"
     Problem ||--o{ AssessmentProblem : "referenced by"
-    
+
     Assessment ||--o{ AssessmentCandidate : "invites"
     AssessmentCandidate ||--o{ Submission : "records"
     Problem ||--o{ Submission : "evaluated against"
@@ -412,7 +411,7 @@ Run migrations to apply the schema to your PostgreSQL database:
 npx prisma migrate dev --name init
 ```
 
-*(Optional)* If you ever need to reset and reapply migrations in development:
+_(Optional)_ If you ever need to reset and reapply migrations in development:
 
 ```bash
 npx prisma migrate reset
@@ -451,17 +450,18 @@ npm start
 
 When the application boots for the first time, `src/app/utils/seed.ts` automatically provisions demo accounts, problem challenges, and a published assessment:
 
-| Role | Email | Password | Initial State / Credits |
-| :--- | :--- | :--- | :--- |
-| **System Admin** | `admin@devjudge.com` | `Admin@123456` | Full platform access |
-| **Recruiter** | `recruiter@techcorp.com` | `Recruiter@123456` | 50 Candidate Invite Credits, TechCorp Solutions Profile |
-| **Candidate** | `candidate@devjudge.com` | `Candidate@123456` | Senior Full Stack Developer profile |
+| Role             | Email                    | Password           | Initial State / Credits                                 |
+| :--------------- | :----------------------- | :----------------- | :------------------------------------------------------ |
+| **System Admin** | `admin@devjudge.com`     | `Admin@123456`     | Full platform access                                    |
+| **Recruiter**    | `recruiter@techcorp.com` | `Recruiter@123456` | 50 Candidate Invite Credits, TechCorp Solutions Profile |
+| **Candidate**    | `candidate@devjudge.com` | `Candidate@123456` | Senior Full Stack Developer profile                     |
 
 ---
 
 ## API Reference & Postman Collection
 
 A complete, pre-configured Postman Collection with automated token extraction and test scripts is included in the project root:
+
 - [`DevJudge_API.postman_collection.json`](file:///e:/Programming/phero-batch7-course/assignments/assignment-6/DevJudge_API.postman_collection.json)
 
 Import it directly into Postman to explore and test all 33 endpoints across Candidate, Recruiter, and Admin roles.
@@ -488,9 +488,12 @@ All endpoints are mounted under `/api/v1`. Standard API responses follow a unifo
 ### 1. Authentication Module (`/api/v1/auth`)
 
 #### Register User
+
 `POST /api/v1/auth/register`
+
 - **Rate Limit**: 10 req / 15 min
 - **Request Body**:
+
 ```json
 {
   "name": "Alex Johnson",
@@ -501,23 +504,31 @@ All endpoints are mounted under `/api/v1`. Standard API responses follow a unifo
   "skills": ["TypeScript", "Node.js", "React"]
 }
 ```
-*(If `role` is `RECRUITER`, pass `companyName` and optional `companyWebsite`)*
+
+_(If `role` is `RECRUITER`, pass `companyName` and optional `companyWebsite`)_
 
 #### Login
+
 `POST /api/v1/auth/login`
+
 - **Rate Limit**: 10 req / 15 min
 - **Request Body**:
+
 ```json
 {
   "email": "alex@example.com",
   "password": "Password@123"
 }
 ```
+
 - **Response**: Returns `accessToken`, `refreshToken`, user object, and sets secure HTTP-only cookies.
 
 #### Google Social Login
+
 `POST /api/v1/auth/google`
+
 - **Request Body**:
+
 ```json
 {
   "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6...",
@@ -526,11 +537,15 @@ All endpoints are mounted under `/api/v1`. Standard API responses follow a unifo
 ```
 
 #### Refresh Access Token
+
 `POST /api/v1/auth/refresh-token`
+
 - **Request Body / Cookie**: `{ "refreshToken": "<token>" }`
 
 #### Logout
+
 `POST /api/v1/auth/logout`
+
 - Clears `accessToken` and `refreshToken` cookies.
 
 ---
@@ -538,14 +553,19 @@ All endpoints are mounted under `/api/v1`. Standard API responses follow a unifo
 ### 2. User Module (`/api/v1/users`)
 
 #### Get Current Profile
+
 `GET /api/v1/users/me`
+
 - **Headers**: `Authorization: Bearer <token>`
 - **Response**: Returns authenticated user profile, associated role profile, and activity counts.
 
 #### Update Current Profile
+
 `PATCH /api/v1/users/me`
+
 - **Headers**: `Authorization: Bearer <token>`
 - **Request Body**:
+
 ```json
 {
   "name": "Alex Johnson",
@@ -560,9 +580,12 @@ All endpoints are mounted under `/api/v1`. Standard API responses follow a unifo
 ### 3. Problem Management Module (`/api/v1/problems`)
 
 #### Create Problem
+
 `POST /api/v1/problems`
+
 - **Access**: `ADMIN`, `RECRUITER`
 - **Request Body**:
+
 ```json
 {
   "title": "Two Sum",
@@ -584,19 +607,27 @@ All endpoints are mounted under `/api/v1`. Standard API responses follow a unifo
 ```
 
 #### Get All Problems
+
 `GET /api/v1/problems`
+
 - **Query Params**: `searchTerm`, `difficulty`, `problemType`, `isPublic`, `page`, `limit`, `sortBy`, `sortOrder`
 
 #### Get Problem by ID
+
 `GET /api/v1/problems/:id`
+
 - **Access**: Public / Authenticated. Candidates automatically receive sanitized test cases with `correctAnswers` and hidden test cases removed.
 
 #### Update Problem
+
 `PATCH /api/v1/problems/:id`
+
 - **Access**: `ADMIN`, `RECRUITER` (Owner only)
 
 #### Soft Delete Problem
+
 `DELETE /api/v1/problems/:id`
+
 - **Access**: `ADMIN`, `RECRUITER` (Owner only)
 
 ---
@@ -604,9 +635,12 @@ All endpoints are mounted under `/api/v1`. Standard API responses follow a unifo
 ### 4. Assessment Module (`/api/v1/assessments`)
 
 #### Create Assessment
+
 `POST /api/v1/assessments`
+
 - **Access**: `ADMIN`, `RECRUITER`
 - **Request Body**:
+
 ```json
 {
   "title": "Senior Backend Screening",
@@ -625,27 +659,38 @@ All endpoints are mounted under `/api/v1`. Standard API responses follow a unifo
 ```
 
 #### List Assessments
+
 `GET /api/v1/assessments`
+
 - **Access**: `ADMIN` (sees all), `RECRUITER` (sees own)
 - **Query Params**: `searchTerm`, `status`, `page`, `limit`, `sortBy`, `sortOrder`
 
 #### Get Assessment by ID
+
 `GET /api/v1/assessments/:id`
+
 - **Access**: `ADMIN`, `RECRUITER`, `CANDIDATE`. Candidates receive sanitized problems and cannot view other candidates' records.
 
 #### Update Assessment
+
 `PATCH /api/v1/assessments/:id`
+
 - **Access**: `ADMIN`, `RECRUITER` (Owner only)
 
 #### Soft Delete Assessment
+
 `DELETE /api/v1/assessments/:id`
+
 - **Access**: `ADMIN`, `RECRUITER` (Owner only)
 
 #### Invite Candidate
+
 `POST /api/v1/assessments/:id/invite`
+
 - **Access**: `RECRUITER`
 - **Deduction**: Decrements 1 credit from the recruiter's wallet.
 - **Request Body**:
+
 ```json
 {
   "email": "candidate@example.com"
@@ -657,27 +702,36 @@ All endpoints are mounted under `/api/v1`. Standard API responses follow a unifo
 ### 5. Candidate Attempt & Evaluation Module (`/api/v1/attempts`)
 
 #### List My Assessments
+
 `GET /api/v1/attempts/my-assessments`
+
 - **Access**: `CANDIDATE`
 - Returns invitations and assessments assigned to the logged-in candidate.
 
 #### Start Assessment Attempt
+
 `POST /api/v1/attempts/:assessmentId/start`
+
 - **Access**: `CANDIDATE`
 - Enforces schedule window (`scheduleStart`, `scheduleEnd`), transitions attempt status to `IN_PROGRESS`, and starts timer.
 
 #### Test Execution Sandbox (Run Code)
+
 `POST /api/v1/attempts/:assessmentId/run-code`
+
 - **Access**: `CANDIDATE`
 - Executes code against visible test cases without persisting or affecting candidate score.
 - **Request Body**:
+
 ```json
 {
   "problemId": "problem_cuid_1",
   "submittedCode": "function twoSum(nums, target) { return [0, 1]; }"
 }
 ```
+
 - **Response**:
+
 ```json
 {
   "problemId": "problem_cuid_1",
@@ -698,25 +752,33 @@ All endpoints are mounted under `/api/v1`. Standard API responses follow a unifo
 ```
 
 #### Submit Problem Solution
+
 `POST /api/v1/attempts/:assessmentId/submit-problem`
+
 - **Access**: `CANDIDATE`
 - Evaluates code against **all** test cases (including hidden), saves/updates `Submission` record in the database, and records awarded score.
 - **Request Body**:
+
 ```json
 {
   "problemId": "problem_cuid_1",
   "submittedCode": "function twoSum(nums, target) { ... }"
 }
 ```
-*(For MCQ/Single Choice, send `"selectedOptions": ["A", "C"]`)*
+
+_(For MCQ/Single Choice, send `"selectedOptions": ["A", "C"]`)_
 
 #### Finish Assessment
+
 `POST /api/v1/attempts/:assessmentId/finish`
+
 - **Access**: `CANDIDATE`
 - Aggregates all submission scores, compares against `passingMarks`, marks status as `COMPLETED`, sets `submittedAt`, and stores `isPassed`.
 
 #### Get Assessment Result
+
 `GET /api/v1/attempts/:assessmentId/result`
+
 - **Access**: `CANDIDATE`, `RECRUITER`, `ADMIN`
 - Returns full candidate score breakdown, individual problem submissions, and pass/fail status.
 
@@ -725,14 +787,18 @@ All endpoints are mounted under `/api/v1`. Standard API responses follow a unifo
 ### 6. Payment & Recruiter Credits Module (`/api/v1/payments`)
 
 #### Create Stripe Checkout Session
+
 `POST /api/v1/payments/create-checkout-session`
+
 - **Access**: `RECRUITER`, `ADMIN`
 - **Request Body**:
+
 ```json
 {
   "planName": "STARTER_PACK"
 }
 ```
+
 - **Available Plans**:
   - `STARTER_PACK`: 25 Credits — \$29
   - `PRO_PACK`: 75 Credits — \$79
@@ -740,18 +806,24 @@ All endpoints are mounted under `/api/v1`. Standard API responses follow a unifo
 - **Response**: Returns `checkoutUrl` to redirect recruiter to Stripe Checkout.
 
 #### Verify Session (Client Return)
+
 `POST /api/v1/payments/verify-session`
+
 - **Access**: `RECRUITER`, `ADMIN`
 - **Request Body**: `{ "sessionId": "cs_test_..." }`
 - Verifies session with Stripe, marks payment as `COMPLETED`, and increments recruiter credits.
 
 #### Stripe Webhook
+
 `POST /api/v1/payments/webhook`
+
 - **Access**: Stripe signature-verified endpoint (`Stripe-Signature` header).
 - Automatically fulfills credits on `checkout.session.completed`.
 
 #### Payment History
+
 `GET /api/v1/payments/my-history`
+
 - **Access**: `RECRUITER` (sees own payments), `ADMIN` (sees all payments).
 
 ---
@@ -759,26 +831,35 @@ All endpoints are mounted under `/api/v1`. Standard API responses follow a unifo
 ### 7. Admin Governance Module (`/api/v1/admin`)
 
 #### List Users
+
 `GET /api/v1/admin/users`
+
 - **Access**: `ADMIN`
 - **Query Params**: `searchTerm`, `role`, `status`, `page`, `limit`, `sortBy`, `sortOrder`
 
 #### Update User Status / Role
+
 `PATCH /api/v1/admin/users/:id/status`
+
 - **Access**: `ADMIN`
 - **Request Body**:
+
 ```json
 {
   "status": "BLOCKED",
   "role": "RECRUITER"
 }
 ```
-*(Prevents an admin from demoting their own admin account)*
+
+_(Prevents an admin from demoting their own admin account)_
 
 #### Dashboard Analytics
+
 `GET /api/v1/admin/dashboard-stats`
+
 - **Access**: `ADMIN`
 - **Response**:
+
 ```json
 {
   "overview": {
@@ -799,7 +880,9 @@ All endpoints are mounted under `/api/v1`. Standard API responses follow a unifo
 ```
 
 #### Audit Logs
+
 `GET /api/v1/admin/audit-logs`
+
 - **Access**: `ADMIN`
 - **Query Params**: `action`, `entityType`, `page`, `limit`, `sortBy`, `sortOrder`
 
@@ -820,27 +903,30 @@ All endpoints are mounted under `/api/v1`. Standard API responses follow a unifo
 
 ## Available NPM Scripts
 
-| Script | Command | Description |
-| :--- | :--- | :--- |
-| `npm run dev` | `tsx watch src/server.ts` | Runs the server in development mode with live reload |
-| `npm run build` | `tsup` | Compiles the TypeScript application into production `dist/` |
-| `npm start` | `node dist/src/server.js` | Runs the compiled production build |
-| `npm run lint:check` | `npx @biomejs/biome lint ./src` | Runs Biome code linter across `src/` |
-| `npm run lint:fix` | `npx @biomejs/biome lint --write ./src` | Automatically resolves fixable lint warnings |
-| `npm run format:check` | `npx @biomejs/biome format ./src` | Checks formatting compliance with Biome |
-| `npm run format:fix` | `npx @biomejs/biome format --write ./src` | Formats codebase using Biome formatter |
+| Script                 | Command                                   | Description                                                 |
+| :--------------------- | :---------------------------------------- | :---------------------------------------------------------- |
+| `npm run dev`          | `tsx watch src/server.ts`                 | Runs the server in development mode with live reload        |
+| `npm run build`        | `tsup`                                    | Compiles the TypeScript application into production `dist/` |
+| `npm start`            | `node dist/src/server.js`                 | Runs the compiled production build                          |
+| `npm run lint:check`   | `npx @biomejs/biome lint ./src`           | Runs Biome code linter across `src/`                        |
+| `npm run lint:fix`     | `npx @biomejs/biome lint --write ./src`   | Automatically resolves fixable lint warnings                |
+| `npm run format:check` | `npx @biomejs/biome format ./src`         | Checks formatting compliance with Biome                     |
+| `npm run format:fix`   | `npx @biomejs/biome format --write ./src` | Formats codebase using Biome formatter                      |
 
 ---
 
 ## Troubleshooting & FAQ
 
 #### 1. Why does `npx prisma migrate dev` fail with driver adapter errors?
+
 This project uses **Prisma ORM v7**. Ensure your `prisma7.config.ts` points to `prisma/schema` and your `DATABASE_URL` is set in `.env`. Run `npx prisma generate` after any schema edits.
 
 #### 2. What happens if Stripe keys are not set?
+
 Payment checkout automatically triggers local fallback mode: simulated session IDs (`cs_test_...`) and success redirects are returned, allowing development without a paid Stripe account.
 
 #### 3. How does the code runner handle input formats?
+
 Solutions can either read from standard input (`fs.readFileSync(0, "utf-8")`) or export/define a `solution(rawInput)` function. Both styles are supported.
 
 ---
