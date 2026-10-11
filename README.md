@@ -459,7 +459,12 @@ When the application boots for the first time, `src/app/utils/seed.ts` automatic
 
 ---
 
-## API Reference
+## API Reference & Postman Collection
+
+A complete, pre-configured Postman Collection with automated token extraction and test scripts is included in the project root:
+- [`DevJudge_API.postman_collection.json`](file:///e:/Programming/phero-batch7-course/assignments/assignment-6/DevJudge_API.postman_collection.json)
+
+Import it directly into Postman to explore and test all 33 endpoints across Candidate, Recruiter, and Admin roles.
 
 All endpoints are mounted under `/api/v1`. Standard API responses follow a uniform JSON structure:
 
